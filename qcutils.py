@@ -1,11 +1,36 @@
-"""
-QC functions for radialmetric data
+#!/usr/bin/env python
 
+"""Quality control (QC) functions for CODAR SeaSonde Radialmetric data
+
+QC categories:
+A. Threshold Tests -- badflag any values that fall below or above a single threshold
+B. Range Tests -- badflag values that fall outside of a range
+C. Weighted Averaging -- average several values with weights based on signal quality parameters 
+
+QC Range Tests:
+NONE TO DO YET
+
+QC Threshold Tests:
+1. DOA peak power (MSR1, MDR1, MDR2) < 5 dB default 
+2. DOA 1/2 power width (3dB down) (MSW1, MDW1, MDW2) > 50 deg default
+3. SNR on monopole (MA3S) < 5 dB default
+
+Weighted Averaging:
+1. Weighting based on Music Power (MSP1, MDP1, MDP2)
+2. Weighting based on SNR on monopole (MA3S)
+3. No weight function (None) 
 
 """
-def _asssign_columns():
+
+import numpy
+import codarutils as codar
+
+def _commonly_assigned_columns():
+    """
+    Commonly assigned CODAR RadialMetric columns
+    """
     # for cut and pasting to other functions
-    # help make the test more readable
+    # help make some code more readable
     VFLG = c['VFLG']
     MSEL = c['MSEL']
     MSR1 = c['MSR1']
@@ -26,7 +51,7 @@ def threshold_qc_doa_peak_power(d, types_str, threshold=5.0):
     changed values.
 
     """
-    c = get_columns(types_str)
+    c = codar.get_columns(types_str)
     VFLG = c['VFLG'] # help make the test more readable
     MSEL = c['MSEL']
     MSR1 = c['MSR1']
@@ -51,7 +76,7 @@ def threshold_qc_doa_half_power_width(d, types_str, threshold=50.0):
     VFLG column the only changed values.
 
     """
-    c = get_columns(types_str)
+    c = codar.get_columns(types_str)
     VFLG = c['VFLG'] # help make the test more readable
     MSEL = c['MSEL']
     MSW1 = c['MSW1'] 
@@ -75,7 +100,7 @@ def threshold_qc_monopole_snr(d, types_str, threshold=5.0):
     """
     # Test 3 SNR on monopole (dB) for all selections
     # 
-    c = get_columns(types_str)
+    c = codar.get_columns(types_str)
     VFLG = c['VFLG'] # help make the test more readable
     MA3S = c['MA3S']
     d3=numpy.copy(d)
@@ -87,9 +112,12 @@ def threshold_qc_monopole_snr(d, types_str, threshold=5.0):
 def threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0]):
     """Combine all three threshold tests
 
-    Returns modified matrix with VFLG column the only changed values.
+    Returns modified matrix with VFLG column only changed values.
 
     """
+    # TO DO: Use a dict or list to pass thresholds for all tests ??
+    # if dict what key to use
+    # if list how know the correct order for tests
     # 
     dall = threshold_qc_doa_peak_power(d, types_str, thresholds[0])
     dall = threshold_qc_doa_half_power_width(dall, types_str, thresholds[1])
@@ -97,34 +125,72 @@ def threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0]):
     return dall
 
 
-def weighted_velocities(d, type_str, xd, xtype_str, bearing_spread=0, weight_parameter='MP'):
+def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP'):
+    """Calculates weighted average of radial velocities (VELO) at bearing and range.
+
+    The weighted average of velocities found at given range and
+    bearing based on weight_parameter.
+
+    Paramters
+    ---------
+    d : ndarray
+        The data from LLUV file(s). 
+    types_str : string 
+        The 'TalbleColumnTypes' string header of LLUV file(s) provide keys for each column.
+    weight_parameter : string ('MP', 'SNR3', 'NONE'), optional 
+        If 'MP' (default), uses MUSIC antenna peak power values for weighting function
+           using MSEL to select one of (MSP1, MDP1, or MDP2).
+        If 'SNR3', uses signal-to-noise ratio on monopole (MA3S).
+        If 'NONE', just average with no weighting performed.
+    bearing_spread: float, optional (default 1.0 degree)
+       The number of degrees to look adjacent to either side of
+       current bearing for increase spatial coverage (and potentially
+       the sample size) for the average.
+       For example, 
+          If 0.0, velocities from window of 1 deg will be averaged.
+          If 1.0, velocities from a window of 3 degrees will be avearged. This is the default.
+          If 2.0, velocities from a window of 5 degrees
+
+    Returns
+    -------
+    xd : ndarray
+       The averaged values with range and bearing.
+       An array with averaged values, range, bearing, 
+    xtypes_str : string 
+        The order and key-labels for each column of xd array
+
+    """
     # 
-    c = get_columns(type_str)
-    xc = get_columns(xtype_str)
-    d1=numpy.copy(d)
+    c = codar.get_columns(types_str)
     offset = bearing_spread # 0 is default but can use 1 or 2 to get 3 or 5 deg spread
     # 
-    (nrows, ncols) = d.shape
-    for irow in range(nrows):
-        rngcell = d[irow,c['SPRC']]
-        bearing = d[irow,c['BEAR']]
-        vflg = d[irow,c['VFLG']]
-        edvc = d[irow,c['EDVC']]
-        head = d[irow,c['HEAD']]
-        # print "%d %d %d %d %d %5.1f" % (irow, rngcell, bearing, vflg, edvc, head)
-        #
-        # if not flagged in radial shorts, recompute VELO, and (VELU and VELV) based on weighting from radial metric
-        if not vflg:
-            # find rows in radial metric data at same range and bearing, where VLFG also is 0
-            # numpy.where() return a tuple for condition so use numpy.where()[0]
-            # xrow = numpy.where((xd[:, xc['SPRC']]==rngcell) & (xd[:,xc['BEAR']]==bearing) & (xd[:,xc['VFLG']]==0))[0]
-            xrow = numpy.where((xd[:, xc['SPRC']]==rngcell) & (xd[:,xc['BEAR']]>=bearing-offset) & (xd[:,xc['BEAR']]<=bearing+offset) & (xd[:,xc['VFLG']]==0))[0] 
-            xcol = numpy.array([xc['VELO'], xc['MSEL'], xc['MSP1'], xc['MDP1'], xc['MDP2'], xc['MA3S']])
-            a = xd[numpy.ix_(xrow, xcol)].copy()
+    rangecells = numpy.unique(d[:,c['SPRC']])
+    bearings = numpy.unique(d[:,c['BEAR']])
+    # 
+    # order of columns and labels for output data
+    xtypes_str = 'SPRC BEAR VELO ESPC MAXV MINV EDVC ERSC'
+    xc = codar.get_columns(xtypes_str)
+    nrows = len(rangecells)+len(bearings)
+    ncols = len(xc)
+    xd = numpy.ones(shape=(nrows,ncols))*numpy.nan
+    #
+    irow = 0
+    for rngcell in rangecells:
+        for bearing in bearings:
+            # numpy.where() returns a tuple for condition so use numpy.where()[0]
+            # also VFLG must equal 0 (0 == good, >0 bad) so only get good data
+            xrow = numpy.where((d[:,c['SPRC']]==rngcell) & \
+                               (d[:,c['BEAR']]>=bearing-offset) & \
+                               (d[:,c['BEAR']]<=bearing+offset) & \
+                               (d[:,c['VFLG']]==0))[0]
+            # If no row matches rngcell AND bearing, then no VELO data, skip to next bearing
+            if xrow.size == 0: 
+                continue
+            xcol = numpy.array([c['VELO'], c['MSEL'], c['MSP1'], c['MDP1'], c['MDP2'], c['MA3S']])
+            a = d[numpy.ix_(xrow, xcol)].copy()
             # if xrow.size == edvc:
             VELO = a[:,0] # all radial velocities found in cell
             SNR3 = a[:,5] # SNR on monopole for each velocity
-
             if weight_parameter == 'MP':
                 # Create array to hold each Music Power (based on MSEL)
                 MP = numpy.array(numpy.ones(VELO.shape)*numpy.nan) 
@@ -142,13 +208,56 @@ def weighted_velocities(d, type_str, xd, xtype_str, bearing_spread=0, weight_par
             elif weight_parameter.upper() == 'NONE':
                 # do no weighting and just compute the mean of all velo's
                 velo = VELO.mean()
- 
-            (velu, velv) = compass2uv(velo, head)
-            # print '... %10.3f %5.1f %10.3f %10.3f' % (velo, head, velu, velv)
-            # VELO.mean()
-            # replace VELO, VELU, VELV in radial short data
-            d1[irow,c['VELO']]=velo
-            d1[irow,c['VELU']]=velu
-            d1[irow,c['VELV']]=velv
+            # data
+            xd[irow,xc['SPRC']] = rngcell
+            xd[irow,xc['BEAR']] = bearing
+            xd[irow,xc['VELO']] = velo
+            # other stat output
+            xd[irow,xc['ESPC']] = VELO.nanstd() # ESPC
+            xd[irow,xc['MAXV']] = VELO.nanmax() # MAXV
+            xd[irow,xc['MINV']] = VELO.nanmin() # MINV
+            # (EDVC and ERSC are the same in this subroutine's context)
+            xd[irow,xc['EDVC']] = VELO.nansum() # EDVC Velocity Count 
+            xd[irow,xc['ERSC']] = VELO.nansum() # ERSC Spatial Count
+            irow += 1
                 
-    return d1
+    return xd, xtypes_str
+
+def generate_radialshort_array(d, types_str, xd, xtypes_str):
+    """ Generates Radialshort data array from original radialmetric data and newly averaged.
+    
+    Parameters
+    ----------
+    d : ndarray
+       The original radialmetric data for extracting lat, lon, etc.
+    types_str : string 
+        The order and key-labels for each column of xd array
+    xd : ndarray
+       The averaged values with range and bearing.
+       An array with averaged values, range, bearing, and other stats
+    xtypes_str : string 
+        The order and key-labels for each column of xd array
+
+    Returns
+    -------
+
+
+    """
+    # do stuff to make data array that has same columns and content as RadialShort or Radial LLUV RDL7 
+    # from what we have collected from radialmetric data (LATD, LOND, RNGE, SPRC, BEAR) and other resources 
+    # 
+    ######################
+    # TO DO: Need to figure out how best to collect info needed to
+    # generate RadialShorts from RadialMetric data
+    # 
+    # get specific LATD, LOND, RNGE, SPRC, BEAR based on data from d ??       
+    # irows = numpy.where((d[:,c['SPRC']]==rngcell) & (xd[:,xc['BEAR']]==bearing)
+    # and check rngcell==SPRC and bearing==BEAR 
+    ######################
+    
+    (velu, velv) = compass2uv(velo, head)
+    # print '... %10.3f %5.1f %10.3f %10.3f' % (velo, head, velu, velv)
+    # VELO.mean()
+    # replace VELO, VELU, VELV in radial short data
+    d1[irow,c['VELU']]=velu
+    d1[irow,c['VELV']]=velv

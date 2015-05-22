@@ -1,18 +1,16 @@
-#
+#!/usr/bin/env python
+# 
 # Last modified: Time-stamp: <>
-"""
-CODAR File Utilities 
+""" CODAR Utilities 
+
 """
 import sys
 import os
 import re
-import glob
+import collections as col
 
 import numpy
-from datetime import datetime
-from time import strptime
 from StringIO import StringIO
-from collections import defaultdict
 
 def load_data(inFile):
     lines=None
@@ -27,14 +25,14 @@ def load_data(inFile):
     return lines
 
 def write_empty_output(ofn, header, footer):
-    "write header and footer only, since no radial data"
+    """write header and footer only, since no radial data"""
     f = open(ofn, 'w')
     f.write(header)
     f.write(footer)
     f.close()
 
 def write_output(ofn, header, d, footer):
-    "write header, radialmetric data, and footer "
+    """Write header, radialmetric data, and footer. """
     f = open(ofn, 'w')
     f.write(header)
     numpy.savetxt(f, d)
@@ -42,19 +40,50 @@ def write_output(ofn, header, d, footer):
     f.close()
 
 def read_lluv_file(ifn):
-    lines = load_data(ifn)
+    """Reads header, CSV table, and tail of LLUV files.  
 
+    Extracts LLUV data into numpy array for further processing. If
+    there is radial data in the file, these lines are found in the
+    middle and each line has no '%'. All header and footer lines start
+    with '%'. The middle is bracketed by header and footer lines. This
+    routine searches for a header, middle, and footer.  If no midde is
+    found, it is assumed that no radial data exists for the site and
+    time.  If no middle, all the comment lines fall in the header and
+    the footer is empty.
+
+    Parameter
+    ---------
+    ifn : string
+       The input filename and path.
+
+    Returns
+    -------
+    d : ndarray
+       The radial data bound by header and footer.  If d is an empty string ('')
+       or None, then no radial table was found.
+    types_str : string 
+       The order and label of columns in d array.  If types_str is an empty string ('')
+       or None, then no radial table was found.
+    header : string 
+       All the '%' commented lines preceding '%TableStart:'
+    footer : string
+       All the '%' commented lines after '%TableEnd:'
+
+    """
+    lines = load_data(ifn)
     m=re.match(r'(?P<header>(%.*\n)*)(?P<middle>([\d\s-].*\n)*)(?P<tail>(%.*\n)*)', ''.join(lines))
     header  = m.group('header')
     footer = m.group('tail')
 
-    ####
-    # print ifn
-    # print 'header: %d, tail: %d' % (len(header), len(footer))
-    # print footer
-
+    # did not find a middle, so all comments are in header, and footer is empty
     if len(footer)<=0:
         print 'No Radial Data in '+ ifn
+        #     # empty array to append but get ncols
+        #     # m = re.findall(r'^(%TableColums):\s(.*)$', header, re.MULTILINE)
+        #     (k, v) = m[0]
+        #     ncols = int(v)
+        #     d = numpy.array([]).reshape(0,ncols)
+        #     return d, types_str, header, footer
         return '', '', header, footer
 
     # read header that match '%(k): (v)\n' pairs on each line
@@ -74,20 +103,8 @@ def read_lluv_file(ifn):
             types_str = v
         elif k == '%TableStart':
             break
-    
-    ####
-    # print types_str
 
-    # identify column numbers for selected variables
-    m2 = re.findall(r'\w{4}', types_str)
-        
-    # if len(footer)<=0:
-    #     print 'No Radial Data in '+ ifn
-    #     # empty array to append
-    #     d = numpy.array([]).reshape(0,len(m2))
-    #     return d, types_str, header, footer
-
-    # read data from string of lines but make it behave like a file object with StringIO
+    # use file object from lines to extract 
     s = StringIO(''.join(lines))
     s.seek(0) # ensures start posn of file-like string s
     d = numpy.loadtxt(s, comments='%')
@@ -96,7 +113,7 @@ def read_lluv_file(ifn):
 
 def get_columns(types_str):
     # use dict to store column label and it's column number
-    c = defaultdict(int)
+    c = col.defaultdict(int)
     column_labels = types_str.strip().split(' ')
     m = re.findall(r'\w{4}', types_str)
     for label in column_labels:
