@@ -223,26 +223,55 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
                 
     return xd, xtypes_str
 
-def generate_radialshort_array(d, types_str, xd, xtypes_str):
-    """ Generates Radialshort data array from original radialmetric data and newly averaged.
+def generate_radialshort_array(d, types_str):
+    """Generates radialshort (rsd) data array.
+
+    This function generates radialshort data (rsd) array by merging
+    unique rows of original radialmetric data (d).
     
     Parameters
     ----------
     d : ndarray
        The original radialmetric data for extracting lat, lon, etc.
     types_str : string 
-        The order and key-labels for each column of xd array
-    xd : ndarray
-       The averaged values with range and bearing.
-       An array with averaged values, range, bearing, and other stats
-    xtypes_str : string 
-        The order and key-labels for each column of xd array
+        The order and key-labels for each column of xd array.
 
     Returns
     -------
-
+    rsd : ndarray
+       The generated radialshort (rsd) data from merging unique rows
+       of rangecell and bearing.
+    rstypes_str : string 
+        The order and key-labels for each column of rsd array.
 
     """
+
+def fill_raadialshorts_array(rsd, rstypes_str, xd, xtypes_str):
+    """Fill in radialshort (rsd) data. 
+
+    This function fills radialshort data (rsd) by merging rows of
+    averaged velocity data (xd) where rangecell and bearing match.
+
+    Parameters
+    ----------
+    rsd : ndarray
+       The generated radialshort (rsd) data from generate_radialshort_array().
+    rstypes_str : string 
+        The order and key-labels for each column of rsd array.
+    xd : ndarray
+       The array with averaged values, range, bearing, and other stats used to fill in rsd array.
+    xtypes_str : string 
+        The order and key-labels for each column of xd array.
+
+    Returns
+    -------
+    rsd : ndarray
+       The modified radialshort (rsd) data.
+    rstypes_str : string 
+        The order and key-labels for each column of rsd array.
+
+    """
+
     # do stuff to make data array that has same columns and content as RadialShort or Radial LLUV RDL7 
     # from what we have collected from radialmetric data (LATD, LOND, RNGE, SPRC, BEAR) and other resources 
     # 
