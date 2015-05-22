@@ -223,11 +223,13 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
                 
     return xd, xtypes_str
 
-def generate_radialshort_array(d, types_str):
+def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
     """Generates radialshort (rsd) data array.
 
     This function generates radialshort data (rsd) array by merging
-    unique rows of original radialmetric data (d).
+    unique rows of original radialmetric data (d).  It is intended to be
+    the output CSV data table (middle) of CODAR LLUV format with header,
+    middle, and footer.
     
     Parameters
     ----------
@@ -235,6 +237,7 @@ def generate_radialshort_array(d, types_str):
        The original radialmetric data for extracting lat, lon, etc.
     types_str : string 
         The order and key-labels for each column of xd array.
+    table_type : string
 
     Returns
     -------
@@ -245,6 +248,46 @@ def generate_radialshort_array(d, types_str):
         The order and key-labels for each column of rsd array.
 
     """
+    if table_type == 'LLUV RDL7':
+        rsdtypes_str = 'LOND LATD VELU VELV VFLG ESPC MAXV MINV EDVC ERSC XDST YDST RNGE BEAR VELO HEAD SPRC'
+    else:
+        print 'generate_radial_array() : Unrecognized table_type "%s"' % (table_type,)
+        return numpy.array([]), ''
+
+    # 
+    # get unique rangecells and bearings based on input radialmetric data
+    c = codar.get_columns(types_str)
+    rngbear = [tuple(row) for row in d[:,[c['SPRC'], c['BEAR']]]]
+    
+    rangecells = numpy.unique(d[:,c['SPRC']])
+    bearings = numpy.unique(d[:,c['BEAR']])
+    # 
+    # order of columns and labels for output data
+    rsc = codar.get_columns(rsdtypes_str)
+    nrows = len(rangecells)*len(bearings)
+    ncols = len(rsc)
+    # initialize and clean up any unused rows at end
+    rsd = numpy.ones(shape=(nrows,ncols))*numpy.nan
+    irow = 0
+    for rngcell in rangecells:
+        for bearing in bearings:
+            # numpy.where() returns a tuple for condition so use numpy.where()[0]
+            # also VFLG must equal 0 (0 == good, >0 bad) so only get good data
+            xrow = numpy.where((d[:,c['SPRC']]==rngcell) & \
+                               (d[:,c['BEAR']]==bearing) & \
+                               (d[:,c['VFLG']]==0))[0]
+            # If no row matches rngcell AND bearing, then no VELO data, skip to next bearing
+            if xrow.size == 0: 
+                continue
+            # data
+            xcol = numpy.array([c['LOND'], c['LATD'], c['VFLG'], c['RNGE'], c['BEAR'], c['SPRC']])
+            rscol = numpy.array([rsc['LOND'], rsc['LATD'], rsc['VFLG'], rsc['RNGE'], rsc['BEAR'], rsc['SPRC']])
+            a = d[numpy.ix_(xrow[0], xcol)].copy()
+            rsd[irow,rscol] = a
+            rsd[irow,rsc['BEAR']] = bearing
+            irow += 1
+
+
 
 def fill_raadialshorts_array(rsd, rstypes_str, xd, xtypes_str):
     """Fill in radialshort (rsd) data. 
@@ -290,3 +333,13 @@ def fill_raadialshorts_array(rsd, rstypes_str, xd, xtypes_str):
     # replace VELO, VELU, VELV in radial short data
     d1[irow,c['VELU']]=velu
     d1[irow,c['VELV']]=velv
+
+# for testing
+if __name__ == '__main__':
+    # 
+    # datadir = sys.argv[1]
+    # patterntype = sys.argv[2]
+    # patterntype = 'MeasPattern' 
+    # patterntype = 'IdealPattern'
+    import os
+    ifn = os.path.join('.', 'test', 'files', 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')

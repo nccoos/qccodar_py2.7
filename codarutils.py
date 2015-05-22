@@ -119,3 +119,13 @@ def get_columns(types_str):
     for label in column_labels:
         c[label]=m.index(label) # c['VFLG']=4
     return c
+
+# for testing
+if __name__ == '__main__':
+    # 
+    # datadir = sys.argv[1]
+    # patterntype = sys.argv[2]
+    # patterntype = 'MeasPattern' 
+    # patterntype = 'IdealPattern'
+ifn = os.path.join('.', 'test', 'files', 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
+d, types_str, header, footer = read_lluv_file(ifn)
