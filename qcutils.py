@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+#
+# Last modified: Time-stamp: <2015-05-23 16:37:40 Sara>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -23,7 +25,6 @@ Weighted Averaging:
 """
 
 import numpy
-import codarutils as codar
 
 def _commonly_assigned_columns():
     """
@@ -51,7 +52,7 @@ def threshold_qc_doa_peak_power(d, types_str, threshold=5.0):
     changed values.
 
     """
-    c = codar.get_columns(types_str)
+    c = get_columns(types_str)
     VFLG = c['VFLG'] # help make the test more readable
     MSEL = c['MSEL']
     MSR1 = c['MSR1']
@@ -76,7 +77,7 @@ def threshold_qc_doa_half_power_width(d, types_str, threshold=50.0):
     VFLG column the only changed values.
 
     """
-    c = codar.get_columns(types_str)
+    c = get_columns(types_str)
     VFLG = c['VFLG'] # help make the test more readable
     MSEL = c['MSEL']
     MSW1 = c['MSW1'] 
@@ -100,7 +101,7 @@ def threshold_qc_monopole_snr(d, types_str, threshold=5.0):
     """
     # Test 3 SNR on monopole (dB) for all selections
     # 
-    c = codar.get_columns(types_str)
+    c = get_columns(types_str)
     VFLG = c['VFLG'] # help make the test more readable
     MA3S = c['MA3S']
     d3=numpy.copy(d)
@@ -161,7 +162,7 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
 
     """
     # 
-    c = codar.get_columns(types_str)
+    c = get_columns(types_str)
     offset = bearing_spread # 0 is default but can use 1 or 2 to get 3 or 5 deg spread
     # 
     rangecells = numpy.unique(d[:,c['SPRC']])
@@ -169,7 +170,7 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
     # 
     # order of columns and labels for output data
     xtypes_str = 'SPRC BEAR VELO ESPC MAXV MINV EDVC ERSC'
-    xc = codar.get_columns(xtypes_str)
+    xc = get_columns(xtypes_str)
     nrows = len(rangecells)+len(bearings)
     ncols = len(xc)
     xd = numpy.ones(shape=(nrows,ncols))*numpy.nan
@@ -223,6 +224,12 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
                 
     return xd, xtypes_str
 
+def unique_rows(a):
+    # http://stackoverflow.com/questions/8560440/removing-duplicate-columns-and-rows-from-a-numpy-2d-array?lq=1
+    a = numpy.ascontiguousarray(a)
+    unique_a = numpy.unique(a.view([('', a.dtype)]*a.shape[1]))
+    return unique_a.view(a.dtype).reshape((unique_a.shape[0], a.shape[1]))
+
 def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
     """Generates radialshort (rsd) data array.
 
@@ -255,41 +262,26 @@ def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
         return numpy.array([]), ''
 
     # 
-    # get unique rangecells and bearings based on input radialmetric data
-    c = codar.get_columns(types_str)
-    rngbear = [tuple(row) for row in d[:,[c['SPRC'], c['BEAR']]]]
-    
-    rangecells = numpy.unique(d[:,c['SPRC']])
-    bearings = numpy.unique(d[:,c['BEAR']])
+    # get unique rows of rangecells and bearings based on input radialmetric data
+    # but also collect columns of info so we don't have to reproduce in next steps
+    c = get_columns(types_str)
+    dcol = numpy.array([c['LOND'], c['LATD'], c['VFLG'], c['RNGE'], c['BEAR'], c['SPRC']])
+    ud = unique_rows(d[:,dcol].copy())
+    # return only rows that have VFLG==0 (0 == good, >0 bad) so only get good data
+    ud = ud[ud[:,2]==0]
     # 
     # order of columns and labels for output data
-    rsc = codar.get_columns(rsdtypes_str)
-    nrows = len(rangecells)*len(bearings)
+    rsc = get_columns(rsdtypes_str)
+    nrows,_ = ud.shape
     ncols = len(rsc)
-    # initialize and clean up any unused rows at end
+    # Initialize new array for radial shorts
     rsd = numpy.ones(shape=(nrows,ncols))*numpy.nan
-    irow = 0
-    for rngcell in rangecells:
-        for bearing in bearings:
-            # numpy.where() returns a tuple for condition so use numpy.where()[0]
-            # also VFLG must equal 0 (0 == good, >0 bad) so only get good data
-            xrow = numpy.where((d[:,c['SPRC']]==rngcell) & \
-                               (d[:,c['BEAR']]==bearing) & \
-                               (d[:,c['VFLG']]==0))[0]
-            # If no row matches rngcell AND bearing, then no VELO data, skip to next bearing
-            if xrow.size == 0: 
-                continue
-            # data
-            xcol = numpy.array([c['LOND'], c['LATD'], c['VFLG'], c['RNGE'], c['BEAR'], c['SPRC']])
-            rscol = numpy.array([rsc['LOND'], rsc['LATD'], rsc['VFLG'], rsc['RNGE'], rsc['BEAR'], rsc['SPRC']])
-            a = d[numpy.ix_(xrow[0], xcol)].copy()
-            rsd[irow,rscol] = a
-            rsd[irow,rsc['BEAR']] = bearing
-            irow += 1
+    # Distribute data in to new array 
+    rscol = numpy.array([rsc['LOND'], rsc['LATD'], rsc['VFLG'], rsc['RNGE'], rsc['BEAR'], rsc['SPRC']])
+    rsd[:,rscol] = ud
+    
 
-
-
-def fill_raadialshorts_array(rsd, rstypes_str, xd, xtypes_str):
+def fill_radialshorts_array(rsd, rstypes_str, xd, xtypes_str):
     """Fill in radialshort (rsd) data. 
 
     This function fills radialshort data (rsd) by merging rows of
@@ -342,4 +334,6 @@ if __name__ == '__main__':
     # patterntype = 'MeasPattern' 
     # patterntype = 'IdealPattern'
     import os
-    ifn = os.path.join('.', 'test', 'files', 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
+    ifn = os.path.join('.', 'test', 'files', 'codar_raw', \
+                       'Radialmetric_HATY_2013_11_05', \
+                       'RDLv_HATY_2013_11_05_0000.ruv')

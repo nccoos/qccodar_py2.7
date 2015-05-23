@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <>
+# Last modified: Time-stamp: <2015-05-23 12:24:11 Sara>
 """ CODAR Utilities 
 
 """
@@ -127,5 +127,7 @@ if __name__ == '__main__':
     # patterntype = sys.argv[2]
     # patterntype = 'MeasPattern' 
     # patterntype = 'IdealPattern'
-ifn = os.path.join('.', 'test', 'files', 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
-d, types_str, header, footer = read_lluv_file(ifn)
+    ifn = os.path.join('.', 'test', 'files', 'codar_raw', \
+                   'Radialmetric_HATY_2013_11_05', \
+                   'RDLv_HATY_2013_11_05_0000.ruv')
+    d, types_str, header, footer = read_lluv_file(ifn)
