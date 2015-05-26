@@ -25,6 +25,7 @@ Weighted Averaging:
 """
 
 import numpy
+from codarutils import *
 
 def _commonly_assigned_columns():
     """
@@ -161,7 +162,6 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
         The order and key-labels for each column of xd array
 
     """
-    # 
     c = get_columns(types_str)
     offset = bearing_spread # 0 is default but can use 1 or 2 to get 3 or 5 deg spread
     # 
@@ -171,6 +171,11 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
     # order of columns and labels for output data
     xtypes_str = 'SPRC BEAR VELO ESPC MAXV MINV EDVC ERSC'
     xc = get_columns(xtypes_str)
+
+    ######################
+    # NEED TO USE unique rangecells and bearings (lexsort)
+    ######################
+
     nrows = len(rangecells)+len(bearings)
     ncols = len(xc)
     xd = numpy.ones(shape=(nrows,ncols))*numpy.nan
@@ -214,12 +219,12 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
             xd[irow,xc['BEAR']] = bearing
             xd[irow,xc['VELO']] = velo
             # other stat output
-            xd[irow,xc['ESPC']] = VELO.nanstd() # ESPC
-            xd[irow,xc['MAXV']] = VELO.nanmax() # MAXV
-            xd[irow,xc['MINV']] = VELO.nanmin() # MINV
+            xd[irow,xc['ESPC']] = numpy.nanstd(VELO) # ESPC
+            xd[irow,xc['MAXV']] = numpy.nanmax(VELO) # MAXV
+            xd[irow,xc['MINV']] = numpy.nanmin(VELO) # MINV
             # (EDVC and ERSC are the same in this subroutine's context)
-            xd[irow,xc['EDVC']] = VELO.nansum() # EDVC Velocity Count 
-            xd[irow,xc['ERSC']] = VELO.nansum() # ERSC Spatial Count
+            xd[irow,xc['EDVC']] = numpy.nansum(VELO) # EDVC Velocity Count 
+            xd[irow,xc['ERSC']] = numpy.nansum(VELO) # ERSC Spatial Count
             irow += 1
                 
     return xd, xtypes_str
@@ -269,6 +274,9 @@ def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
     ud = unique_rows(d[:,dcol].copy())
     # return only rows that have VFLG==0 (0 == good, >0 bad) so only get good data
     ud = ud[ud[:,2]==0]
+    # sort this array based on rangecell (SPRC) and bearing (BEAR)
+    idx = numpy.lexsort((ud[:,4], ud[:,5]))
+    ud = ud[idx,:]
     # 
     # order of columns and labels for output data
     rsc = get_columns(rsdtypes_str)
@@ -279,6 +287,7 @@ def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
     # Distribute data in to new array 
     rscol = numpy.array([rsc['LOND'], rsc['LATD'], rsc['VFLG'], rsc['RNGE'], rsc['BEAR'], rsc['SPRC']])
     rsd[:,rscol] = ud
+    return rsd, rsdtypes_str
     
 
 def fill_radialshorts_array(rsd, rstypes_str, xd, xtypes_str):
@@ -306,6 +315,12 @@ def fill_radialshorts_array(rsd, rstypes_str, xd, xtypes_str):
         The order and key-labels for each column of rsd array.
 
     """
+
+    xc = get_columns(xtypes_str)
+    rsc = get_columns(rsdtypes_str)
+
+    for rngcell, bearing in rsd[:10, [rsc['SPRC'],rsc['BEAR']]]:
+        print "rangecell: %d, bearing: %d" % (rngcell, bearing)
 
     # do stuff to make data array that has same columns and content as RadialShort or Radial LLUV RDL7 
     # from what we have collected from radialmetric data (LATD, LOND, RNGE, SPRC, BEAR) and other resources 
