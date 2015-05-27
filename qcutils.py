@@ -165,67 +165,66 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
     c = get_columns(types_str)
     offset = bearing_spread # 0 is default but can use 1 or 2 to get 3 or 5 deg spread
     # 
-    rangecells = numpy.unique(d[:,c['SPRC']])
-    bearings = numpy.unique(d[:,c['BEAR']])
+    ud = unique_rows(d[:,[c['SPRC'],c['BEAR'],c['VFLG']]].copy())
+    # return only rows that have VFLG==0 (0 == good, >0 bad) so only get good data
+    ud = ud[ud[:,2]==0]
+    # sort this array based on rangecell (SPRC) and bearing (BEAR), remember last (col=0) is first to sort 
+    idx = numpy.lexsort((ud[:,1], ud[:,0]))
+    ud = ud[idx,:]
     # 
     # order of columns and labels for output data
     xtypes_str = 'SPRC BEAR VELO ESPC MAXV MINV EDVC ERSC'
     xc = get_columns(xtypes_str)
-
-    ######################
-    # NEED TO USE unique rangecells and bearings (lexsort)
-    ######################
-
-    nrows = len(rangecells)+len(bearings)
+    #
+    nrows, _ = ud.shape
     ncols = len(xc)
     xd = numpy.ones(shape=(nrows,ncols))*numpy.nan
     #
-    irow = 0
-    for rngcell in rangecells:
-        for bearing in bearings:
-            # numpy.where() returns a tuple for condition so use numpy.where()[0]
-            # also VFLG must equal 0 (0 == good, >0 bad) so only get good data
-            xrow = numpy.where((d[:,c['SPRC']]==rngcell) & \
-                               (d[:,c['BEAR']]>=bearing-offset) & \
-                               (d[:,c['BEAR']]<=bearing+offset) & \
-                               (d[:,c['VFLG']]==0))[0]
-            # If no row matches rngcell AND bearing, then no VELO data, skip to next bearing
-            if xrow.size == 0: 
-                continue
-            xcol = numpy.array([c['VELO'], c['MSEL'], c['MSP1'], c['MDP1'], c['MDP2'], c['MA3S']])
-            a = d[numpy.ix_(xrow, xcol)].copy()
-            # if xrow.size == edvc:
-            VELO = a[:,0] # all radial velocities found in cell
-            SNR3 = a[:,5] # SNR on monopole for each velocity
-            if weight_parameter == 'MP':
-                # Create array to hold each Music Power (based on MSEL)
-                MP = numpy.array(numpy.ones(VELO.shape)*numpy.nan) 
-                # pluck the msel-based Music Power from MSP1, MDP1 or MPD2 column
-                for msel in [1, 2, 3]:
-                    which = a[:,1]==msel
-                    MP[which,] = a[which, msel+1]
-                    # convert MP from db to voltage for weighting
+    for irow, cell in enumerate(ud):
+        rngcell, bearing = cell[0:2]
+        # numpy.where() returns a tuple for condition so use numpy.where()[0]
+        # also VFLG must equal 0 (0 == good, >0 bad) so only get good data
+        xrow = numpy.where((d[:,c['SPRC']]==rngcell) & \
+                           (d[:,c['BEAR']]>=bearing-offset) & \
+                           (d[:,c['BEAR']]<=bearing+offset) & \
+                           (d[:,c['VFLG']]==0))[0]
+        # If no row matches rngcell AND bearing, then no VELO data, skip to next bearing
+        if xrow.size == 0: 
+            continue
+        
+        xcol = numpy.array([c['VELO'], c['MSEL'], c['MSP1'], c['MDP1'], c['MDP2'], c['MA3S']])
+        a = d[numpy.ix_(xrow, xcol)].copy()
+        # if xrow.size == edvc:
+        VELO = a[:,0] # all radial velocities found in cell
+        SNR3 = a[:,5] # SNR on monopole for each velocity
+        if weight_parameter == 'MP':
+            # Create array to hold each Music Power (based on MSEL)
+            MP = numpy.array(numpy.ones(VELO.shape)*numpy.nan) 
+            # pluck the msel-based Music Power from MSP1, MDP1 or MPD2 column
+            for msel in [1, 2, 3]:
+                which = a[:,1]==msel
+                MP[which,] = a[which, msel+1]
+                # convert MP from db to voltage for weighting
                 MP = numpy.power(10, MP/10.)
                 wts = MP/MP.sum()
                 velo = numpy.dot(VELO,wts)
-            elif weight_parameter == 'SNR3':
-                wts = SNR3/SNR3.sum()
-                velo = numpy.dot(VELO,wts)
-            elif weight_parameter.upper() == 'NONE':
-                # do no weighting and just compute the mean of all velo's
-                velo = VELO.mean()
-            # data
-            xd[irow,xc['SPRC']] = rngcell
-            xd[irow,xc['BEAR']] = bearing
-            xd[irow,xc['VELO']] = velo
-            # other stat output
-            xd[irow,xc['ESPC']] = numpy.nanstd(VELO) # ESPC
-            xd[irow,xc['MAXV']] = numpy.nanmax(VELO) # MAXV
-            xd[irow,xc['MINV']] = numpy.nanmin(VELO) # MINV
-            # (EDVC and ERSC are the same in this subroutine's context)
-            xd[irow,xc['EDVC']] = numpy.nansum(VELO) # EDVC Velocity Count 
-            xd[irow,xc['ERSC']] = numpy.nansum(VELO) # ERSC Spatial Count
-            irow += 1
+        elif weight_parameter == 'SNR3':
+            wts = SNR3/SNR3.sum()
+            velo = numpy.dot(VELO,wts)
+        elif weight_parameter.upper() == 'NONE':
+            # do no weighting and just compute the mean of all velo's
+            velo = VELO.mean()
+        # data
+        xd[irow,xc['SPRC']] = rngcell
+        xd[irow,xc['BEAR']] = bearing
+        xd[irow,xc['VELO']] = velo
+        # other stat output
+        xd[irow,xc['ESPC']] = VELO.std() # ESPC
+        xd[irow,xc['MAXV']] = VELO.max() # MAXV
+        xd[irow,xc['MINV']] = VELO.min() # MINV
+        # (EDVC and ERSC are the same in this subroutine's context)
+        xd[irow,xc['EDVC']] = VELO.size # EDVC Velocity Count 
+        xd[irow,xc['ERSC']] = VELO.size # ERSC Spatial Count
                 
     return xd, xtypes_str
 
@@ -316,24 +315,25 @@ def fill_radialshorts_array(rsd, rstypes_str, xd, xtypes_str):
 
     """
 
-    xc = get_columns(xtypes_str)
     rsc = get_columns(rsdtypes_str)
+    rscells = rsd[:,[rsc['SPRC'], rsc['BEAR']]]
+    rscol = numpy.array([rsc['VELO'], rsc['ESPC'], rsc['MAXV'], rsc['MINV'], rsc['EDVC'], rsc['ERSC']])
 
-    for rngcell, bearing in rsd[:10, [rsc['SPRC'],rsc['BEAR']]]:
-        print "rangecell: %d, bearing: %d" % (rngcell, bearing)
+    xc = get_columns(xtypes_str)
+    xcells = xd[:,[xc['SPRC'],xc['BEAR']]]
+    xcol = numpy.array([xc['VELO'], xc['ESPC'], xc['MAXV'], xc['MINV'], xc['EDVC'], xc['ERSC']])
 
-    # do stuff to make data array that has same columns and content as RadialShort or Radial LLUV RDL7 
-    # from what we have collected from radialmetric data (LATD, LOND, RNGE, SPRC, BEAR) and other resources 
-    # 
-    ######################
-    # TO DO: Need to figure out how best to collect info needed to
-    # generate RadialShorts from RadialMetric data
-    # 
-    # get specific LATD, LOND, RNGE, SPRC, BEAR based on data from d ??       
-    # irows = numpy.where((d[:,c['SPRC']]==rngcell) & (xd[:,xc['BEAR']]==bearing)
-    # and check rngcell==SPRC and bearing==BEAR 
-    ######################
-    
+    # check range and bearing columns are the same between rsd and xd
+    assert rscells.shape == xcells.shape, "rscells.shape(%d,%d)" % rscells.shape, 
+    assert (rscells == xcells).all()
+    # deal xd data into rsd by columns
+    rsd[:,rscol] = xd[:,xcol]
+
+    # if not, then match row-by-row, and deal each row as matches are made
+    # for rngcell, bearing in rsd[:10, [rsc['SPRC'],rsc['BEAR']]]:
+    #     print "rangecell: %d, bearing: %d" % (rngcell, bearing)
+
+    # compute velocity components -- this is not vectorized however
     (velu, velv) = compass2uv(velo, head)
     # print '... %10.3f %5.1f %10.3f %10.3f' % (velo, head, velu, velv)
     # VELO.mean()
