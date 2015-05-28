@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-05-23 16:37:40 Sara>
+# Last modified: Time-stamp: <2015-05-28 13:59:24 haines>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -255,7 +255,7 @@ def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
     rsd : ndarray
        The generated radialshort (rsd) data from merging unique rows
        of rangecell and bearing.
-    rstypes_str : string 
+    rsdtypes_str : string 
         The order and key-labels for each column of rsd array.
 
     """
@@ -289,7 +289,7 @@ def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
     return rsd, rsdtypes_str
     
 
-def fill_radialshorts_array(rsd, rstypes_str, xd, xtypes_str):
+def fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str):
     """Fill in radialshort (rsd) data. 
 
     This function fills radialshort data (rsd) by merging rows of
@@ -299,7 +299,7 @@ def fill_radialshorts_array(rsd, rstypes_str, xd, xtypes_str):
     ----------
     rsd : ndarray
        The generated radialshort (rsd) data from generate_radialshort_array().
-    rstypes_str : string 
+    rsdtypes_str : string 
         The order and key-labels for each column of rsd array.
     xd : ndarray
        The array with averaged values, range, bearing, and other stats used to fill in rsd array.
@@ -310,7 +310,7 @@ def fill_radialshorts_array(rsd, rstypes_str, xd, xtypes_str):
     -------
     rsd : ndarray
        The modified radialshort (rsd) data.
-    rstypes_str : string 
+    rsdtypes_str : string 
         The order and key-labels for each column of rsd array.
 
     """
@@ -324,7 +324,7 @@ def fill_radialshorts_array(rsd, rstypes_str, xd, xtypes_str):
     xcol = numpy.array([xc['VELO'], xc['ESPC'], xc['MAXV'], xc['MINV'], xc['EDVC'], xc['ERSC']])
 
     # check range and bearing columns are the same between rsd and xd
-    assert rscells.shape == xcells.shape, "rscells.shape(%d,%d)" % rscells.shape, 
+    assert rscells.shape == xcells.shape, "rscells.shape(%d,%d)" % rscells.shape 
     assert (rscells == xcells).all()
     # deal xd data into rsd by columns
     rsd[:,rscol] = xd[:,xcol]
@@ -333,13 +333,33 @@ def fill_radialshorts_array(rsd, rstypes_str, xd, xtypes_str):
     # for rngcell, bearing in rsd[:10, [rsc['SPRC'],rsc['BEAR']]]:
     #     print "rangecell: %d, bearing: %d" % (rngcell, bearing)
 
-    # compute velocity components -- this is not vectorized however
+    # create HEAD column based on BEAR+180
+    bear = rsd[:,rsc['BEAR']]
+    head = numpy.mod(bear+180., 360.)
+    velo = rsd[:,rsc['VELO']]
+    # compute velocity components
     (velu, velv) = compass2uv(velo, head)
-    # print '... %10.3f %5.1f %10.3f %10.3f' % (velo, head, velu, velv)
-    # VELO.mean()
-    # replace VELO, VELU, VELV in radial short data
-    d1[irow,c['VELU']]=velu
-    d1[irow,c['VELV']]=velv
+    # replace VELU, VELV, HEAD in radial short data
+    rsd[:,c['VELU']]=velu
+    rsd[:,c['VELV']]=velv
+    rsd[:,c['HEAD']]=head
+    #
+    rnge = rsd[:,rsc['RNGE']]
+    (xdist, ydist) = compase2uv(rnge,bear)
+    # relace XDIST, YDIST in radial short data
+    rsd[:,c['XDST']]=xdist
+    rsd[:,c['YDST']]=ydist
+    
+    return rsd, rsdtypes_str
+
+def compass2uv(wmag, wdir):
+    # calculate horizontal vector components (u,v) from magnitude and compass direction
+    # (not euclidean dir) and with numpy arrays only
+    # future versions should detect datatype to handle lists
+    r = numpy.pi/180.
+    u = wmag*numpy.sin(wdir*r)
+    v = wmag*numpy.cos(wdir*r)
+    return (u,v)
 
 # for testing
 if __name__ == '__main__':
@@ -348,7 +368,17 @@ if __name__ == '__main__':
     # patterntype = sys.argv[2]
     # patterntype = 'MeasPattern' 
     # patterntype = 'IdealPattern'
-    import os
     ifn = os.path.join('.', 'test', 'files', 'codar_raw', \
-                       'Radialmetric_HATY_2013_11_05', \
-                       'RDLv_HATY_2013_11_05_0000.ruv')
+                   'Radialmetric_HATY_2013_11_05', \
+                   'RDLv_HATY_2013_11_05_0000.ruv')
+    d, types_str, header, footer = read_lluv_file(ifn)
+    # thresholding
+    # dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
+    # weighting
+    xd, xtypes_str = weighted_velocities(d, types_str)
+    rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
+    # rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)
+
+    #
+    rsc = get_columns(rsdtypes_str)
+    xc = get_columns(xtypes_str)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2015-05-23 12:24:11 Sara>
+# Last modified: Time-stamp: <2015-05-28 13:05:37 haines>
 """ CODAR Utilities 
 
 """
@@ -71,7 +71,8 @@ def read_lluv_file(ifn):
 
     """
     lines = load_data(ifn)
-    m=re.match(r'(?P<header>(%.*\n)*)(?P<middle>([\d\s-].*\n)*)(?P<tail>(%.*\n)*)', ''.join(lines))
+    m=re.match(r'(?P<header>(%.*\n)*)(?P<middle>([\d\s-].*\n)*)(?P<tail>(%.*\n)*)', \
+               ''.join(lines))
     header  = m.group('header')
     footer = m.group('tail')
 
@@ -131,3 +132,5 @@ if __name__ == '__main__':
                    'Radialmetric_HATY_2013_11_05', \
                    'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
+    xd, xtypes_str = weighted_velocities(d, types_str)
+    rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
