@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-05-28 13:59:24 haines>
+# Last modified: Time-stamp: <2015-05-28 15:57:20 haines>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -340,22 +340,44 @@ def fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str):
     # compute velocity components
     (velu, velv) = compass2uv(velo, head)
     # replace VELU, VELV, HEAD in radial short data
-    rsd[:,c['VELU']]=velu
-    rsd[:,c['VELV']]=velv
-    rsd[:,c['HEAD']]=head
+    rsd[:,rsc['VELU']]=velu
+    rsd[:,rsc['VELV']]=velv
+    rsd[:,rsc['HEAD']]=head
     #
     rnge = rsd[:,rsc['RNGE']]
-    (xdist, ydist) = compase2uv(rnge,bear)
+    (xdist, ydist) = compass2uv(rnge,bear)
     # relace XDIST, YDIST in radial short data
-    rsd[:,c['XDST']]=xdist
-    rsd[:,c['YDST']]=ydist
+    rsd[:,rsc['XDST']]=xdist
+    rsd[:,rsc['YDST']]=ydist
     
     return rsd, rsdtypes_str
 
 def compass2uv(wmag, wdir):
+    """ Vector conversion from mag and direction (wmag,wdir) to x,y
+    vector components (u,v)
+
+    Parameters
+    ----------
+    wmag : array-like, same size as wdir
+       The magnitude of the vector
+    wdir : array-like, same size as wmag
+       The compass direction, Clockwise from y-axis or North equals 0/360 deg
+
+    Returns
+    -------
+    (u,v) : tuple of array-like u and v vectors
+
+    >>> compass2uv(1.0, 0.0)
+    (0.0, 1.0)
+    >>> 
+    
+    """
     # calculate horizontal vector components (u,v) from magnitude and compass direction
-    # (not euclidean dir) and with numpy arrays only
-    # future versions should detect datatype to handle lists
+    # cast the inputs into numpy.array
+    wmag = numpy.array(wmag)
+    wdir = numpy.array(wdir)
+    assert wmag.size == wdir.size
+    
     r = numpy.pi/180.
     u = wmag*numpy.sin(wdir*r)
     v = wmag*numpy.cos(wdir*r)
