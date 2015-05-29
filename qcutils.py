@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-05-28 15:57:20 haines>
+# Last modified: Time-stamp: <2015-05-29 18:11:59 haines>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -25,6 +25,7 @@ Weighted Averaging:
 """
 
 import numpy
+numpy.set_printoptions(suppress=True)
 from codarutils import *
 
 def _commonly_assigned_columns():
@@ -356,20 +357,24 @@ def compass2uv(wmag, wdir):
     """ Vector conversion from mag and direction (wmag,wdir) to x,y
     vector components (u,v)
 
+    If inputs are lists, it is cast into an arrays.
+
     Parameters
     ----------
     wmag : array-like, same size as wdir
-       The magnitude of the vector
+       The magnitude of the vector. 
     wdir : array-like, same size as wmag
        The compass direction, Clockwise from y-axis or North equals 0/360 deg
 
     Returns
     -------
-    (u,v) : tuple of array-like u and v vectors
+    (u,v) : tuple of array-like u and v vectors the same size and shape as inputs.
+       The x,y vector components. 
 
     >>> compass2uv(1.0, 0.0)
     (0.0, 1.0)
-    >>> 
+    >>> compass2uv([1., 1., 1., 1.], [0., 90., 180., 270.])
+    (array([ 0.,  1.,  0., -1.]), array([ 1.,  0., -1., -0.]))
     
     """
     # calculate horizontal vector components (u,v) from magnitude and compass direction
@@ -399,7 +404,7 @@ if __name__ == '__main__':
     # weighting
     xd, xtypes_str = weighted_velocities(d, types_str)
     rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
-    # rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)
+    rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)[0]
 
     #
     rsc = get_columns(rsdtypes_str)

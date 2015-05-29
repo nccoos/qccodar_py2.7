@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2015-05-28 13:05:37 haines>
+# Last modified: Time-stamp: <2015-05-29 18:04:24 haines>
 """ CODAR Utilities 
 
 """
 import sys
 import os
 import re
-import collections as col
 
 import numpy
 from StringIO import StringIO
@@ -114,7 +113,8 @@ def read_lluv_file(ifn):
 
 def get_columns(types_str):
     # use dict to store column label and it's column number
-    c = col.defaultdict(int)
+    #c = col.defaultdict(int)
+    c = {}
     column_labels = types_str.strip().split(' ')
     m = re.findall(r'\w{4}', types_str)
     for label in column_labels:
