@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-05-29 18:11:59 haines>
+# Last modified: Time-stamp: <2015-05-30 16:49:49 haines>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -353,6 +353,51 @@ def fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str):
     
     return rsd, rsdtypes_str
 
+def generate_radialshort_header(rsd, rsdtypes_str, header):
+    """ Fill radialshort header details from radialmetric header
+
+    Replaces lines from input radialmetric header that start with '%
+    Table*' and '%% ' to match radialshort format.  Information gleaned
+    from rsd and rdstypes_str are used in header metadata.
+
+    Parameter:
+    ----------
+    rsd : ndarray
+       The radialshort (rsd) data.
+    rsdtypes_str : string 
+        The order and key-labels for each column of rsd array.
+    header : string
+       The radialmetric header
+
+    Returns:
+    --------
+    rsdheader : string
+       The radialshort header
+    """
+
+    # keep everything up until TableType
+    rsdheader = re.split(r'(\n%TableType)', header)[0]
+
+    ncols = len(rsdtypes_str.split(' '))
+    nrows, _ = rsd.shape
+
+    lines = rsdheader.split('\n')
+    # add following lines to header 
+    lines.append('%' + 'TableType: LLUV RDL7')
+    lines.append('%' + 'TableColumns: %d' % ncols)
+    lines.append('%' + 'TableColumnTypes: %s' % rsdtypes_str)
+    lines.append('%' + 'TableRows: %d' % nrows)
+    lines.append('%TableStart:')
+    lines.append('%%   Longitude   Latitude    U comp   V comp  VectorFlag    Spatial     Velocity    '+\
+                 'Velocity  Velocity Spatial  X Distance  Y Distance   Range   Bearing   Velocity  '+\
+                 'Direction   Spectra')
+    lines.append('%%     (deg)       (deg)     (cm/s)   (cm/s)  (GridCode)    Quality     Maximum     '+\
+                 'Minimum    Count    Count      (km)        (km)       (km)    (True)    (cm/s)     '+\
+                 '(True)    RngCell')
+    return '\n'.join(lines)
+
+
+
 def compass2uv(wmag, wdir):
     """ Vector conversion from mag and direction (wmag,wdir) to x,y
     vector components (u,v)
@@ -381,7 +426,7 @@ def compass2uv(wmag, wdir):
     # cast the inputs into numpy.array
     wmag = numpy.array(wmag)
     wdir = numpy.array(wdir)
-    assert wmag.size == wdir.size
+    assert wmag.shape == wdir.shape, 'wmag and wdir must be same size and shape'
     
     r = numpy.pi/180.
     u = wmag*numpy.sin(wdir*r)
@@ -405,6 +450,7 @@ if __name__ == '__main__':
     xd, xtypes_str = weighted_velocities(d, types_str)
     rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
     rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)[0]
+    rsdheader = generate_radialshort_header(rsd, rsdtypes_str, header)
 
     #
     rsc = get_columns(rsdtypes_str)
