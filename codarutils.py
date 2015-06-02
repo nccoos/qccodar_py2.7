@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2015-05-29 18:04:24 haines>
+# Last modified: Time-stamp: <2015-06-01 17:54:44 haines>
 """ CODAR Utilities 
 
 """
@@ -75,21 +75,10 @@ def read_lluv_file(ifn):
     header  = m.group('header')
     footer = m.group('tail')
 
-    # did not find a middle, so all comments are in header, and footer is empty
-    if len(footer)<=0:
-        print 'No Radial Data in '+ ifn
-        #     # empty array to append but get ncols
-        #     # m = re.findall(r'^(%TableColums):\s(.*)$', header, re.MULTILINE)
-        #     (k, v) = m[0]
-        #     ncols = int(v)
-        #     d = numpy.array([]).reshape(0,ncols)
-        #     return d, types_str, header, footer
-        return '', '', header, footer
-
     # read header that match '%(k): (v)\n' pairs on each line
-    m = re.findall(r'^(%.*):\s*(.*)$', ''.join(lines), re.MULTILINE)
+    m = re.findall(r'^(%.*):\s*(.*)$', header, re.MULTILINE)
     for k,v in m:
-        #### print k+', '+v
+        print k+', '+v
         if k == '%TimeStamp':
             #sample_dt = scanf_datetime(v, fmt='%Y %m %d %H %M %S')
             pass
@@ -103,6 +92,14 @@ def read_lluv_file(ifn):
             types_str = v
         elif k == '%TableStart':
             break
+
+    # did not find a middle, so all comments are in header, and footer is empty
+    if len(footer)<=0:
+        print 'No Radial Data in '+ ifn
+        d = numpy.array([]).reshape(0,ncols)
+        return d, types_str, header, footer
+        # return '', '', header, footer
+
 
     # use file object from lines to extract 
     s = StringIO(''.join(lines))

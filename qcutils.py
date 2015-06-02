@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-05-30 16:49:49 haines>
+# Last modified: Time-stamp: <2015-05-30 17:23:38 haines>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -360,6 +360,10 @@ def generate_radialshort_header(rsd, rsdtypes_str, header):
     Table*' and '%% ' to match radialshort format.  Information gleaned
     from rsd and rdstypes_str are used in header metadata.
 
+    Note: this could be generalized for any LLUV file since passing in info
+    create lines that describe the main data. LLUV RDL7 is specified in
+    generate_radialshort_array() as is the rsdtypes_str defining columns.
+
     Parameter:
     ----------
     rsd : ndarray
@@ -378,11 +382,12 @@ def generate_radialshort_header(rsd, rsdtypes_str, header):
     # keep everything up until TableType
     rsdheader = re.split(r'(\n%TableType)', header)[0]
 
-    ncols = len(rsdtypes_str.split(' '))
-    nrows, _ = rsd.shape
+    ncols_from_string = len(rsdtypes_str.split(' '))
+    nrows, ncols = rsd.shape
+    assert ncols == ncols_from_string, 'ncols from rsdtypes_str and rsd ncols do not match'
 
     lines = rsdheader.split('\n')
-    # add following lines to header 
+    # add following lines to header string to conform to radialshort data type
     lines.append('%' + 'TableType: LLUV RDL7')
     lines.append('%' + 'TableColumns: %d' % ncols)
     lines.append('%' + 'TableColumnTypes: %s' % rsdtypes_str)
@@ -440,6 +445,8 @@ if __name__ == '__main__':
     # patterntype = sys.argv[2]
     # patterntype = 'MeasPattern' 
     # patterntype = 'IdealPattern'
+    
+    # read in the data
     ifn = os.path.join('.', 'test', 'files', 'codar_raw', \
                    'Radialmetric_HATY_2013_11_05', \
                    'RDLv_HATY_2013_11_05_0000.ruv')
@@ -448,10 +455,17 @@ if __name__ == '__main__':
     # dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
     # weighting
     xd, xtypes_str = weighted_velocities(d, types_str)
+    
+    # create radialshort data, first generate array then fill it
     rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
     rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)[0]
+    # modify header from radialmetric, based on new radialshort data
     rsdheader = generate_radialshort_header(rsd, rsdtypes_str, header)
-
+    # not modifying the footer at this time
+    rsdfooter = footer
+    # output the radialshort data specified location
+    write_output(ofn, rsdheader, rsd, rsdfooter)
+    
     #
     rsc = get_columns(rsdtypes_str)
     xc = get_columns(xtypes_str)

@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+#
+# Last modified: Time-stamp: <2015-06-01 15:46:36 haines>
+"""
+Tests for testing lluv file reads.
+
+"""
+import os
+from qcutils import *
+
+files = os.path.join(os.path.curdir, 'test', 'files')
+ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', \
+                   'RDLv_HATY_2013_11_05_0000.ruv')
+
+def test_load_data():
+    """
+    Read the file as list of lines
+    """
+    lines = load_data(ifn)
+    assert type(lines) is list
+    assert type(lines[0]) is str
+    assert len(lines) == 8136
+
+def test_read_lluv_file():
+    """
+    Test reading typical LLUV data that has data
+    
+    """
+    d, types_str, header, footer = read_lluv_file(ifn)
+
+    assert header.split('\n')[0] == '%CTF: 1.00'
+    assert re.search(r'%TableType:.*\n', header).group() == '%TableType: LLUV RDM1\n'
+    assert re.search(r'%TableStart:.*\n', header).group()== '%TableStart:\n'
+    assert footer.split('\n')[0] == '%TableEnd:'
+
+    assert types_str == 'LOND LATD VELU VELV VFLG RNGE BEAR VELO HEAD SPRC SPDC MSEL MSA1 MDA1 MDA2 MEGR MPKR MOFR MSP1 MDP1 MDP2 MSW1 MDW1 MDW2 MSR1 MDR1 MDR2 MA1S MA2S MA3S MEI1 MEI2 MEI3 MDRJ '
+
+    # check some elements of return numpy.array
+    assert d.shape == (8029, 34)
+    # not ideal to pull specific values out, but how else to test?
+    # first and last, lon, lat
+    assert numpy.array_equal(d[0,0:2], [-75.3316214,  35.227066])
+    assert numpy.array_equal(d[-1,0:2], [-75.820443,  36.972371])
+
+def test_read_lluv_empty_file():
+    """
+    Test reading LLUV data that has no radial data
+    
+    """
+    d, types_str, header, footer = read_lluv_file(ifn)
+    # when the file has no data, the footer is empty
+    assert len(footer) == 0
