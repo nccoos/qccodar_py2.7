@@ -37,7 +37,7 @@ def write_output(ofn, header, d, footer):
     f.write(header)
     # if there is any data, save to the file)
     if d.size > 0:
-        numpy.savetxt(f, d)
+        numpy.savetxt(f, d, fmt='%g')
     f.write(footer)
     f.close()
 
