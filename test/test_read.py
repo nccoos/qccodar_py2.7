@@ -2,7 +2,9 @@
 #
 # Last modified: Time-stamp: <2015-06-01 15:46:36 haines>
 """
-Tests for testing lluv file reads.
+Tests for reading lluv files.
+
+We may need to deal with different types of LLUV files eventually.
 
 """
 import os
@@ -23,7 +25,7 @@ def test_load_data():
 
 def test_read_lluv_file():
     """
-    Test reading typical LLUV data that has data
+    Read typical LLUV data that has data
     
     """
     d, types_str, header, footer = read_lluv_file(ifn)
@@ -44,9 +46,22 @@ def test_read_lluv_file():
 
 def test_read_lluv_empty_file():
     """
-    Test reading LLUV data that has no radial data
+    Read LLUV data that has NO radial data
     
     """
-    d, types_str, header, footer = read_lluv_file(ifn)
-    # when the file has no data, the footer is empty
+    empty_ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_01', \
+                   'RDLv_HATY_2013_11_01_1830.ruv')
+
+    d, types_str, header, footer = read_lluv_file(empty_ifn)
+
+    # find header and type_str
+    assert header.split('\n')[0] == '%CTF: 1.00'
+    # the footer should be empty
     assert len(footer) == 0
+    # 
+    assert types_str == ''
+    
+    # check size of data (no rows if no data)
+    assert d.size == 0
+    assert numpy.array_equal(d, [])
+   

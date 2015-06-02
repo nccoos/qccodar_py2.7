@@ -9,6 +9,7 @@ import os
 import re
 
 import numpy
+numpy.set_printoptions(suppress=True)
 from StringIO import StringIO
 
 def load_data(inFile):
@@ -23,8 +24,8 @@ def load_data(inFile):
         print 'File does not exist: '+ inFile
     return lines
 
-def write_empty_output(ofn, header, footer):
-    """write header and footer only, since no radial data"""
+def _write_empty_output(ofn, header, footer):
+    """deprecating -- write header and footer only, since no radial data"""
     f = open(ofn, 'w')
     f.write(header)
     f.write(footer)
@@ -34,7 +35,9 @@ def write_output(ofn, header, d, footer):
     """Write header, radialmetric data, and footer. """
     f = open(ofn, 'w')
     f.write(header)
-    numpy.savetxt(f, d)
+    # if there is any data, save to the file)
+    if d.size > 0:
+        numpy.savetxt(f, d)
     f.write(footer)
     f.close()
 
@@ -58,15 +61,15 @@ def read_lluv_file(ifn):
     Returns
     -------
     d : ndarray
-       The radial data bound by header and footer.  If d is an empty string ('')
-       or None, then no radial table was found.
+       The radial data bound by header and footer.  If there is no data, 
+       d is an empty array (d.size==0), then no radial table was found.
     types_str : string 
-       The order and label of columns in d array.  If types_str is an empty string ('')
-       or None, then no radial table was found.
+       The order and label of columns in d array.  If there is no data,
+       types_str is an empty string ('').
     header : string 
        All the '%' commented lines preceding '%TableStart:'
     footer : string
-       All the '%' commented lines after '%TableEnd:'
+       All the '%' commented lines after the data table, starting with '%TableEnd:'
 
     """
     lines = load_data(ifn)
@@ -75,10 +78,15 @@ def read_lluv_file(ifn):
     header  = m.group('header')
     footer = m.group('tail')
 
+    # did not find a middle, so all comments are in header, and footer is empty
+    if len(footer)<=0:
+        print 'No Radial Data in '+ ifn
+        return numpy.array([]), '', header, footer
+
     # read header that match '%(k): (v)\n' pairs on each line
     m = re.findall(r'^(%.*):\s*(.*)$', header, re.MULTILINE)
     for k,v in m:
-        print k+', '+v
+        ### print k+', '+v
         if k == '%TimeStamp':
             #sample_dt = scanf_datetime(v, fmt='%Y %m %d %H %M %S')
             pass
@@ -92,14 +100,6 @@ def read_lluv_file(ifn):
             types_str = v
         elif k == '%TableStart':
             break
-
-    # did not find a middle, so all comments are in header, and footer is empty
-    if len(footer)<=0:
-        print 'No Radial Data in '+ ifn
-        d = numpy.array([]).reshape(0,ncols)
-        return d, types_str, header, footer
-        # return '', '', header, footer
-
 
     # use file object from lines to extract 
     s = StringIO(''.join(lines))
