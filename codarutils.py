@@ -34,7 +34,10 @@ def _write_empty_output(ofn, header, footer):
 def write_output(ofn, header, d, footer):
     """Write header, radialmetric data, and footer. """
     f = open(ofn, 'w')
-    f.write(header)
+    if header[-1] == '\n':
+        f.write(header)
+    else:
+        f.write(header+'\n')
     # if there is any data, save to the file)
     if d.size > 0:
         numpy.savetxt(f, d, fmt='%g')

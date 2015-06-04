@@ -198,18 +198,18 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
         # if xrow.size == edvc:
         VELO = a[:,0] # all radial velocities found in cell
         SNR3 = a[:,5] # SNR on monopole for each velocity
-        if weight_parameter == 'MP':
+        if weight_parameter.upper() == 'MP':
             # Create array to hold each Music Power (based on MSEL)
             MP = numpy.array(numpy.ones(VELO.shape)*numpy.nan) 
             # pluck the msel-based Music Power from MSP1, MDP1 or MPD2 column
             for msel in [1, 2, 3]:
                 which = a[:,1]==msel
                 MP[which,] = a[which, msel+1]
-                # convert MP from db to voltage for weighting
-                MP = numpy.power(10, MP/10.)
-                wts = MP/MP.sum()
-                velo = numpy.dot(VELO,wts)
-        elif weight_parameter == 'SNR3':
+            # convert MP from db to voltage for weighting
+            MP = numpy.power(10, MP/10.)
+            wts = MP/MP.sum()
+            velo = numpy.dot(VELO,wts)
+        elif weight_parameter.upper() == 'SNR3' or weight_parameter.upper() == 'SNR':
             wts = SNR3/SNR3.sum()
             velo = numpy.dot(VELO,wts)
         elif weight_parameter.upper() == 'NONE':
@@ -228,12 +228,6 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
         xd[irow,xc['ERSC']] = VELO.size # ERSC Spatial Count
                 
     return xd, xtypes_str
-
-def unique_rows(a):
-    # http://stackoverflow.com/questions/8560440/removing-duplicate-columns-and-rows-from-a-numpy-2d-array?lq=1
-    a = numpy.ascontiguousarray(a)
-    unique_a = numpy.unique(a.view([('', a.dtype)]*a.shape[1]))
-    return unique_a.view(a.dtype).reshape((unique_a.shape[0], a.shape[1]))
 
 def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
     """Generates radialshort (rsd) data array.
@@ -403,6 +397,42 @@ def generate_radialshort_header(rsd, rsdtypes_str, header):
 
 
 
+def unique_rows(a):
+    # http://stackoverflow.com/questions/8560440/removing-duplicate-columns-and-rows-from-a-numpy-2d-array?lq=1
+    a = numpy.ascontiguousarray(a)
+    unique_a = numpy.unique(a.view([('', a.dtype)]*a.shape[1]))
+    return unique_a.view(a.dtype).reshape((unique_a.shape[0], a.shape[1]))
+
+def cell_intersect(rngbear1, rngbear2):
+    """ Return rows that match range and bearing data between the two nx2 matrices.
+
+    Parameters
+    ----------
+    rngbear1 : nx2 array
+       The first array of range and bearings that define each cell. 
+       The first column is range cells.  The second column are the bearings.
+    rngbear2 : nx2 array
+       The second array of range and bearings that define each cell. 
+       The first column is range cells.  The second column are the bearings.
+    
+    Return
+    ------
+    (rows1, rows2) : tuple of nx1 arrays 
+       The rows where range and bearing cell are the same between two input matrices.
+    """
+    rows1 = []; rows2=[]
+    for irow, cell in enumerate(rngbear1):
+        rngcell, bearing = cell
+        xrow = numpy.where( (rngbear2[:, 0] == rngcell) & \
+                            (rngbear2[:, 1] == bearing) )[0]
+        if xrow.size == 0:
+            continue
+        rows1.append(irow); rows2.append(xrow)
+    rows1 = numpy.squeeze(rows1)
+    rows2 = numpy.squeeze(rows2)
+    return (rows1, rows2)
+
+
 def compass2uv(wmag, wdir):
     """ Vector conversion from mag and direction (wmag,wdir) to x,y
     vector components (u,v)
@@ -454,7 +484,7 @@ if __name__ == '__main__':
     # thresholding
     # dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
     # weighting
-    xd, xtypes_str = weighted_velocities(d, types_str)
+    xd, xtypes_str = weighted_velocities(d, types_str, 0.0, 'SNR')
     
     # create radialshort data, first generate array then fill it
     rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
@@ -464,6 +494,7 @@ if __name__ == '__main__':
     # not modifying the footer at this time
     rsdfooter = footer
     # output the radialshort data specified location
+    ofn = os.path.join('.', 'test', 'files', 'test_output.txt')
     write_output(ofn, rsdheader, rsd, rsdfooter)
     
     #

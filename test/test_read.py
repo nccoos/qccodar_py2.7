@@ -16,7 +16,7 @@ ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', \
 
 def test_load_data():
     """
-    Read the file as list of lines
+    test_load_data -- Read the file as list of lines
     """
     lines = load_data(ifn)
     assert type(lines) is list
@@ -25,7 +25,7 @@ def test_load_data():
 
 def test_read_lluv_file():
     """
-    Read typical LLUV data that has data
+    test_read_lluv_file -- Read typical LLUV data that has data
     
     """
     d, types_str, header, footer = read_lluv_file(ifn)
@@ -46,7 +46,7 @@ def test_read_lluv_file():
 
 def test_read_lluv_empty_file():
     """
-    Read LLUV data that has NO radial data
+    test_read_lluv_empty_file -- Read LLUV data that has NO radial data
     
     """
     empty_ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_01', \
@@ -65,3 +65,18 @@ def test_read_lluv_empty_file():
     assert d.size == 0
     assert numpy.array_equal(d, [])
    
+def test_get_columns():
+    """
+    test_get_columns -- Parse %TableColumnTypes into dict
+    """
+    d, types_str, header, footer = read_lluv_file(ifn)
+    c = get_columns(types_str)
+    # test the keys
+    for i, k in enumerate(sorted(c, key=c.__getitem__)):
+        # assert c['LOND'] == 0
+        assert eval("c['%s'] == %d" % (k, i))
+        
+    # test the values
+    # [0, 1, ... 34] == [0, 1, ... 34]
+    assert sorted(c.values()) == range(34)
+
