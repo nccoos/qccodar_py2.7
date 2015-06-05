@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-06-05 15:26:24 Sara>
+# Last modified: Time-stamp: <2015-06-05 17:36:23 Sara>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -27,9 +27,12 @@ import sys
 import os
 import re
 import fnmatch
+import datetime
 
 import numpy
 numpy.set_printoptions(suppress=True)
+
+# 
 from codarutils import *
 
 def _commonly_assigned_columns():
@@ -506,12 +509,73 @@ def recursive_glob(treeroot, pattern):
         results.extend(os.path.join(base, f) for f in goodfiles) 
     return results 
 
-# if I am interested in loading  RDLv_HATY_2013_11_05_0000.ruv, then find it and the other
-# files (one before and one after) if they exist.  Need to know OutputTimeInterval (30 min in this case)
-# test/files/codar_raw/Radialmetric_HATY_2013_11_04/RDLv_HATY_2013_11_04_2330.ruv 
-# test/files/codar_raw/Radialmetric_HATY_2013_11_05/RDLv_HATY_2013_11_05_0000.ruv 
-# test/files/codar_raw/Radialmetric_HATY_2013_11_05/RDLv_HATY_2013_11_05_0030.ruv 
+def _find_files():
+    # one of the utilities for qc codar is to aggregate several sample times of data before qc'ing and doing
+    # weighted average
+    #
+    # if interested in loading a targe site, date and time e.g. RDLv_HATY_2013_11_05_0000.ruv,
+    # then we nned to first find it and the other
+    # files (one before and one after) if they exist.
+    # Need to know OutputTimeInterval (30 min in this case) to know what was previous file(s) and
+    # next file(s) look like
+    #
+    # Most likely they will be in same directory but they might not
+    # 
+    # test/files/codar_raw/Radialmetric_HATY_2013_11_04/RDLv_HATY_2013_11_04_2330.ruv 
+    # test/files/codar_raw/Radialmetric_HATY_2013_11_05/RDLv_HATY_2013_11_05_0000.ruv 
+    # test/files/codar_raw/Radialmetric_HATY_2013_11_05/RDLv_HATY_2013_11_05_0030.ruv
+    files = recursive_glob(os.path.join(files, 'codar_raw'), 'RDLv*.ruv')
+    for f in files:
+        fn = os.path.split(f)[-1]
+        fndt = filt_datetime(fn)
 
+    target
+    dt_start = dts[0]-datetime.timedelta(minutes=30)
+    dt_end = dts[0]+datetime.timedelta(minutes=30)
+
+def filt_datetime(input_string):
+    """ Attempts to filter date and time from input string.
+    
+    Following the template, YYYY(-)MM(-)DD(-)(hh(:)(mm(:)(ss)))
+    find the most precise, reasonable string match and
+    return its datetime object.
+
+    Typical matches include, YYYYMMDD-hhmmss, YYYY-MM-DD-hh:mm:ss
+
+    Requires date with all three (year, month, day) in decreasing
+    order as integers. Time is optional.
+    
+    """
+    # typical codar time stamp format
+    pattern = r"""
+    # YYYY(-)MM(-)DD(-)(hh(:)(mm(:)(ss)))
+    (\d{4})           # 4-digit YEAR 
+    \D?               # optional 1 character non-digit separator (e.g. ' ' or '-')
+    (\d{2})           # 2-digit MONTH 
+    \D?               # optional 1 character non-digit separator
+    (\d{2})           # 2-digit DAY 
+    \D?               # optional 1 character non-digit separator (e.g. ' ' or 'T')
+    (\d{2})?          # optional 2-digit HOUR 
+    \D?               # optional 1 character non-digit separator (e.g. ' ' or ':')
+    (\d{2})?          # optional 2-digit MINUTE 
+    \D?               # optional 1 character non-digit separator (e.g. ' ' or ':')
+    (\d{2})?          # optional 2-digit SECOND
+    """
+    p = re.compile(pattern, re.VERBOSE)
+    # input_string = 'RDLv_HATY_2013_11_05_000000.ruv'
+    # input_string = 'RDLv_HATY_2013_11_05_0000.ruv'
+    # input_string = 'RDLv_HATY_2013_11_05_00.ruv'
+    # input_string = 'RDLv_HATY_2013_11_05.ruv'
+    # input_string = 'RDLv_HATY_13_11_05.ruv'
+    m = p.search(input_string) 
+    # m.groups() # should be ('2013', '11', '05', '00', '00', None) for 'RDLv_HATY_2013_11_05_0000.ruv'
+    if m:
+        values = [int(yi) for yi in m.groups() if yi is not None] # [2013, 11, 5, 0, 0]
+        # datetime.datetime(*v) requires mininum of year, month, day
+        dt = datetime.datetime(*values) # datetime.datetime(2013, 11, 5, 0, 0)
+    else:
+        dt = None
+    return dt
 
 # for testing
 if __name__ == '__main__':

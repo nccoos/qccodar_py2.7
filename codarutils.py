@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2015-06-05 14:17:49 Sara>
+# Last modified: Time-stamp: <2015-06-05 17:05:49 Sara>
 """ CODAR Utilities 
 
 """
@@ -8,6 +8,7 @@ import sys
 import os
 import re
 import fnmatch
+import datetime
 
 import numpy
 numpy.set_printoptions(suppress=True)
