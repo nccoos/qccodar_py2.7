@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2015-06-01 17:54:44 haines>
+# Last modified: Time-stamp: <2015-06-05 14:17:49 Sara>
 """ CODAR Utilities 
 
 """
 import sys
 import os
 import re
+import fnmatch
 
 import numpy
 numpy.set_printoptions(suppress=True)

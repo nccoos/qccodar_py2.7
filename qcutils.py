@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-05-30 17:23:38 haines>
+# Last modified: Time-stamp: <2015-06-05 15:26:24 Sara>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -23,6 +23,10 @@ Weighted Averaging:
 3. No weight function (None) 
 
 """
+import sys
+import os
+import re
+import fnmatch
 
 import numpy
 numpy.set_printoptions(suppress=True)
@@ -395,8 +399,6 @@ def generate_radialshort_header(rsd, rsdtypes_str, header):
                  '(True)    RngCell')
     return '\n'.join(lines)
 
-
-
 def unique_rows(a):
     # http://stackoverflow.com/questions/8560440/removing-duplicate-columns-and-rows-from-a-numpy-2d-array?lq=1
     a = numpy.ascontiguousarray(a)
@@ -467,6 +469,49 @@ def compass2uv(wmag, wdir):
     u = wmag*numpy.sin(wdir*r)
     v = wmag*numpy.cos(wdir*r)
     return (u,v)
+
+def recursive_glob(treeroot, pattern):
+    """ Glob-like search for filenames based on pattern but in all
+    subdirectories to treeroot.
+
+    Parameters
+    ----------
+    treeroot : string
+       The top most directory path to begin search.
+    pattern : string
+       The pattern to match file in search.
+
+    Return
+    ------
+    results : list of paths
+       The results of search.
+
+    >>> files = os.path.join(os.path.curdir, 'test', 'files')
+    >>> recursive_glob(files, 'RDLx*.*')
+    ['.\\test\\files\\codar_raw\\Radialshorts_HATY_2013_11_05\\RDLx_HATY_2013_11_05_0000.ruv',
+    '.\\test\\files\\RadialShorts_mp_weight_angres1\\RDLx_HATY_2013_11_05_0000.ruv',
+    '.\\test\\files\\RadialShorts_mp_weight_angres3\\RDLx_HATY_2013_11_05_0000.ruv',
+    '.\\test\\files\\RadialShorts_no_weight_angres1\\RDLx_HATY_2013_11_05_0000.ruv',
+    '.\\test\\files\\RadialShorts_snr_weight_angres1\\RDLx_HATY_2013_11_05_0000.ruv',
+    '.\\test\\files\\RadialShorts_snr_weight_angres3\\RDLx_HATY_2013_11_05_0000.ruv']
+    
+    """
+    # fnmatch gives you exactly the same patterns as glob, so this is
+    # really an excellent replacement for glob.glob with very close
+    # semantics.  Pasted from
+    # <http://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python>
+    results = [] 
+    for base, dirs, files in os.walk(treeroot): 
+        goodfiles = fnmatch.filter(files, pattern) 
+        results.extend(os.path.join(base, f) for f in goodfiles) 
+    return results 
+
+# if I am interested in loading  RDLv_HATY_2013_11_05_0000.ruv, then find it and the other
+# files (one before and one after) if they exist.  Need to know OutputTimeInterval (30 min in this case)
+# test/files/codar_raw/Radialmetric_HATY_2013_11_04/RDLv_HATY_2013_11_04_2330.ruv 
+# test/files/codar_raw/Radialmetric_HATY_2013_11_05/RDLv_HATY_2013_11_05_0000.ruv 
+# test/files/codar_raw/Radialmetric_HATY_2013_11_05/RDLv_HATY_2013_11_05_0030.ruv 
+
 
 # for testing
 if __name__ == '__main__':
