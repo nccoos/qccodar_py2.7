@@ -78,7 +78,7 @@ def test_threshold_qc_all():
 def test_weighted_average_mp_weight_angres1():
     ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
-    xd, xtypes_str = weighted_velocities(d, types_str, bearing_spread=0.0, weight_parameter='MP')
+    xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=1, weight_parameter='MP')
     xc = get_columns(xtypes_str)
 
     ifn2 = os.path.join(files, 'RadialShorts_mp_weight_angres1', 'RDLx_HATY_2013_11_05_0000.ruv')
@@ -96,7 +96,7 @@ def test_weighted_average_mp_weight_angres1():
 def test_weighted_average_mp_weight_angres3():
     ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
-    xd, xtypes_str = weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
+    xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP')
     xc = get_columns(xtypes_str)
 
     ifn2 = os.path.join(files, 'RadialShorts_mp_weight_angres3', 'RDLx_HATY_2013_11_05_0000.ruv')
@@ -115,7 +115,7 @@ def test_weighted_average_mp_weight_angres3():
 def test_weighted_average_snr_weight_angres1():
     ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
-    xd, xtypes_str = weighted_velocities(d, types_str, bearing_spread=0.0, weight_parameter='SNR3')
+    xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=1, weight_parameter='SNR3')
     xc = get_columns(xtypes_str)
 
     ifn2 = os.path.join(files, 'RadialShorts_snr_weight_angres1', 'RDLx_HATY_2013_11_05_0000.ruv')
@@ -133,7 +133,7 @@ def test_weighted_average_snr_weight_angres1():
 def test_weighted_average_snr_weight_angres3():
     ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
-    xd, xtypes_str = weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='SNR3')
+    xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=3, weight_parameter='SNR3')
     xc = get_columns(xtypes_str)
 
     ifn2 = os.path.join(files, 'RadialShorts_snr_weight_angres3', 'RDLx_HATY_2013_11_05_0000.ruv')
@@ -152,7 +152,7 @@ def test_weighted_average_snr_weight_angres3():
 def test_weighted_average_no_weight_angres1():
     ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
-    xd, xtypes_str = weighted_velocities(d, types_str, bearing_spread=0.0, weight_parameter='NONE')
+    xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=1, weight_parameter='NONE')
     xc = get_columns(xtypes_str)
 
     ifn2 = os.path.join(files, 'RadialShorts_no_weight_angres1', 'RDLx_HATY_2013_11_05_0000.ruv')

@@ -135,7 +135,7 @@ def threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0]):
     return dall
 
 
-def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP'):
+def weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP'):
     """Calculates weighted average of radial velocities (VELO) at bearing and range.
 
     The weighted average of velocities found at given range and
@@ -152,14 +152,12 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
            using MSEL to select one of (MSP1, MDP1, or MDP2).
         If 'SNR3', uses signal-to-noise ratio on monopole (MA3S).
         If 'NONE', just average with no weighting performed.
-    bearing_spread: float, optional (default 1.0 degree)
-       The number of degrees to look adjacent to either side of
-       current bearing for increase spatial coverage (and potentially
-       the sample size) for the average.
+    numdegrees: int, optional (default 3 degree)
+       The number of degrees of bearing from which to get velocities to spatially average over.
        For example, 
-          If 0.0, velocities from window of 1 deg will be averaged.
-          If 1.0, velocities from a window of 3 degrees will be avearged. This is the default.
-          If 2.0, velocities from a window of 5 degrees
+          If 1 deg, velocities from window of 1 deg will be averaged.
+          If 3 deg, velocities from a window of 3 degrees will be averaged. This is the default.
+          If 5 deg, velocities from a window of 5 degrees will be averaged.
 
     Returns
     -------
@@ -171,7 +169,7 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
 
     """
     c = get_columns(types_str)
-    offset = bearing_spread # 0 is default but can use 1 or 2 to get 3 or 5 deg spread
+    offset = ((numdegrees-1)/2)
     # 
     ud = unique_rows(d[:,[c['SPRC'],c['BEAR'],c['VFLG']]].copy())
     # return only rows that have VFLG==0 (0 == good, >0 bad) so only get good data
@@ -238,8 +236,8 @@ def weighted_velocities(d, types_str, bearing_spread=1.0, weight_parameter='MP')
 
 
 def recursive_glob(treeroot, pattern):
-    """ Glob-like search for filenames based on pattern but in all
-    subdirectories to treeroot.
+    """ Glob-like search for filenames based on pattern by recursve walk 
+    subdirectories starting in treeroot.
 
     Parameters
     ----------
@@ -250,17 +248,11 @@ def recursive_glob(treeroot, pattern):
 
     Return
     ------
-    results : list of paths
+    results : list of paths from treeroot
        The results of search.
 
     >>> files = os.path.join(os.path.curdir, 'test', 'files')
     >>> recursive_glob(files, 'RDLx*.*')
-    ['.\\test\\files\\codar_raw\\Radialshorts_HATY_2013_11_05\\RDLx_HATY_2013_11_05_0000.ruv',
-    '.\\test\\files\\RadialShorts_mp_weight_angres1\\RDLx_HATY_2013_11_05_0000.ruv',
-    '.\\test\\files\\RadialShorts_mp_weight_angres3\\RDLx_HATY_2013_11_05_0000.ruv',
-    '.\\test\\files\\RadialShorts_no_weight_angres1\\RDLx_HATY_2013_11_05_0000.ruv',
-    '.\\test\\files\\RadialShorts_snr_weight_angres1\\RDLx_HATY_2013_11_05_0000.ruv',
-    '.\\test\\files\\RadialShorts_snr_weight_angres3\\RDLx_HATY_2013_11_05_0000.ruv']
     
     """
     # fnmatch gives you exactly the same patterns as glob, so this is
@@ -273,64 +265,58 @@ def recursive_glob(treeroot, pattern):
         results.extend(os.path.join(base, f) for f in goodfiles) 
     return results 
 
-def _find_files():
-    # one of the utilities for qc codar is to aggregate several sample times of data before qc'ing and doing
-    # weighted average
-    #
-    # if interested in loading a targe site, date and time e.g. RDLv_HATY_2013_11_05_0000.ruv,
-    # then we nned to first find it and the other
-    # files (one before and one after) if they exist.
-    # Need to know OutputTimeInterval (30 min in this case) to know what was previous file(s) and
-    # next file(s) look like
-    #
-    # Most likely they will be in same directory but they might not
-    # 
-    # test/files/codar_raw/Radialmetric_HATY_2013_11_04/RDLv_HATY_2013_11_04_2330.ruv 
-    # test/files/codar_raw/Radialmetric_HATY_2013_11_05/RDLv_HATY_2013_11_05_0000.ruv 
-    # test/files/codar_raw/Radialmetric_HATY_2013_11_05/RDLv_HATY_2013_11_05_0030.ruv
-    files = recursive_glob(os.path.join(files, 'codar_raw'), 'RDLv*.ruv')
-    for f in files:
-        fn = os.path.split(f)[-1]
-        fndt = filt_datetime(fn)
-
-    target
-    dt_start = dts[0]-datetime.timedelta(minutes=30)
-    dt_end = dts[0]+datetime.timedelta(minutes=30)
-
-def filt_datetime(input_string):
-    """ Attempts to filter date and time from input string.
+def filt_datetime(input_string, pattern=None):
+    """Attempts to filter date and time from input string based on regex pattern.
     
-    Following the template, YYYY(-)MM(-)DD(-)(hh(:)(mm(:)(ss)))
-    find the most precise, reasonable string match and
-    return its datetime object.
+    Default pattern follows the template, YYYY(-)MM(-)DD(-)(hh(:)(mm(:)(ss)))
+    with minimum of YYYY MM and DD (date) supplied in descending order to 
+    return its datetime object, otherwise returns None.
 
-    Typical matches include, YYYYMMDD-hhmmss, YYYY-MM-DD-hh:mm:ss
+    Typical matches include, YYYYMMDD-hhmmss, YYYY-MM-DD-hh:mm:ss All
+    the following will produce the corresponding datetime object. Any
+    2-digit year will return None.
 
     Requires date with all three (year, month, day) in decreasing
     order as integers. Time is optional.
+
+    >>> filt_datetime('RDLv_HATY_2013_11_05_000000.ruv')
+    datetime.datetime(2013, 11, 5, 0, 0)
+
+    >>> filt_datetime('RDLv_HATY_2013_11_05_0000.ruv')
+    datetime.datetime(2013, 11, 5, 0, 0)
     
+    >>> filt_datetime('RDLv_HATY_2013_11_05_00.ruv')
+    datetime.datetime(2013, 11, 5, 0, 0)
+    
+    >>> filt_datetime('RDLv_HATY_2013_11_05.ruv')
+    datetime.datetime(2013, 11, 5, 0, 0)
+    
+    # NOTE: returns None
+    >>> filt_datetime('RDLv_HATY_13_11_05.ruv')
+    
+    >>> filt_datetime('RDLv_HATY_2013-11-05T00:00:00.ruv')
+    datetime.datetime(2013, 11, 5, 0, 0)
+
     """
-    # typical codar time stamp format
-    pattern = r"""
-    # YYYY(-)MM(-)DD(-)(hh(:)(mm(:)(ss)))
-    (\d{4})           # 4-digit YEAR 
-    \D?               # optional 1 character non-digit separator (e.g. ' ' or '-')
-    (\d{2})           # 2-digit MONTH 
-    \D?               # optional 1 character non-digit separator
-    (\d{2})           # 2-digit DAY 
-    \D?               # optional 1 character non-digit separator (e.g. ' ' or 'T')
-    (\d{2})?          # optional 2-digit HOUR 
-    \D?               # optional 1 character non-digit separator (e.g. ' ' or ':')
-    (\d{2})?          # optional 2-digit MINUTE 
-    \D?               # optional 1 character non-digit separator (e.g. ' ' or ':')
-    (\d{2})?          # optional 2-digit SECOND
-    """
+
+    #  the default pattern for a typical codar time stamp format
+    if not pattern:
+        pattern = r"""
+        # YYYY(-)MM(-)DD(-)(hh(:)(mm(:)(ss)))
+        (\d{4})           # 4-digit YEAR 
+        \D?               # optional 1 character non-digit separator (e.g. ' ' or '-')
+        (\d{2})           # 2-digit MONTH 
+        \D?               # optional 1 character non-digit separator
+        (\d{2})           # 2-digit DAY 
+        \D?               # optional 1 character non-digit separator (e.g. ' ' or 'T')
+        (\d{2})?          # optional 2-digit HOUR 
+        \D?               # optional 1 character non-digit separator (e.g. ' ' or ':')
+        (\d{2})?          # optional 2-digit MINUTE 
+        \D?               # optional 1 character non-digit separator (e.g. ' ' or ':')
+        (\d{2})?          # optional 2-digit SECOND
+        """
+    #         
     p = re.compile(pattern, re.VERBOSE)
-    # input_string = 'RDLv_HATY_2013_11_05_000000.ruv'
-    # input_string = 'RDLv_HATY_2013_11_05_0000.ruv'
-    # input_string = 'RDLv_HATY_2013_11_05_00.ruv'
-    # input_string = 'RDLv_HATY_2013_11_05.ruv'
-    # input_string = 'RDLv_HATY_13_11_05.ruv'
     m = p.search(input_string) 
     # m.groups() # should be ('2013', '11', '05', '00', '00', None) for 'RDLv_HATY_2013_11_05_0000.ruv'
     if m:
@@ -340,6 +326,89 @@ def filt_datetime(input_string):
     else:
         dt = None
     return dt
+
+def find_files_to_merge(ifn, numfiles=3, sample_interval=30):
+    """
+    Parameters:
+    -----------
+
+    Return
+    ------
+
+    """
+
+    indir = os.path.dirname(ifn)
+    rdlstr = re.match(r'RDL[uv]', os.path.basename(ifn)).group()
+    all_files = recursive_glob(os.path.join(indir), rdlstr+'*.ruv')
+
+    delta_minutes = ((numfiles-1)/2)*sample_interval
+    target_dt = filt_datetime(os.path.basename(ifn))
+    dt_start = target_dt - datetime.timedelta(minutes=delta_minutes)
+    dt_end = target_dt + datetime.timedelta(minutes=delta_minutes)
+    
+    files = []
+    for fn in all_files:
+        dt = filt_datetime(os.path.basename(fn))
+        if dt is not None:
+            if dt_start <= dt <= dt_end:
+                files.append(fn)
+    return files
+           
+
+def do_qc(datadir, fn, patterntype):
+    """ 
+    """
+    # read in the data
+    ifn = os.path.join(datadir, 'RadialMetric', patterntype, fn)
+    d, types_str, header, footer = read_lluv_file(ifn)
+
+    # read in other data to use in averaging over time
+    ifns = find_files_to_merge(ifn, numfiles=1, sample_interval=30)
+
+    # do any threshold qc
+    dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
+   
+    # do weighted averaging
+    xd, xtypes_str = weighted_velocities(d, types_str, 1.0, 'MP')
+
+    # output radialshort data
+    outdir = os.path.join(datadir, 'RadialShorts', patterntype)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    if patterntype=='IdealPattern':
+        lluvtype = 'x'
+    elif patterntype=='MeasPattern':
+        lluvtype = 'y'
+    else:
+        print 'Do not recognize patterntype='+patterntype+' -- must be IdealPattern or MeasPattern ' 
+        return
+
+    # substitute RDLv(w) for RDLx(y) in filename
+    newfn = re.sub(r'RDL[vw]', 'RDL'+lluvtype, fn)
+    ofn = os.path.join(datadir, 'RadialShorts', patterntype, newfn)
+
+    # create radialshort data, first generate array then fill it
+    rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
+    rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)[0]
+    # create header from radialmetric, based on new radialshort data
+    rsdheader = generate_radialshort_header(rsd, rsdtypes_str, header)
+    # not modifying the footer at this time
+    rsdfooter = footer
+    # 
+    write_output(ofn, rsdheader, rsd, rsdfooter)
+
+
+def batch_qc(datadir, patterntype):
+    # get file listing of datadir
+    fns = recursive_glob(os.path.join(datadir, 'RadialMetric', patterntype), 'RDL*.ruv')
+    fns.sort()
+    # perform qc on each file
+    print 'QC RadialMetric : ...'
+    for fullfn in fns:
+        print fullfn
+        fn = os.path.basename(fullfn)
+        do_qc(datadir, fn, patterntype)
+
 
 # for testing
 if __name__ == '__main__':
