@@ -44,7 +44,7 @@ def test_fill_radialshort_array():
     rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
     
     # no qc thresholds and this no weighting and 1 deg angres (bearing_offset=0.0) is same as CODAR processing
-    xd, xtypes_str = weighted_velocities(d, types_str, 0.0, 'NONE')
+    xd, xtypes_str = weighted_velocities(d, types_str, 1, 'NONE')
     ####################
     # TESTING
     rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)[0]
@@ -87,8 +87,15 @@ def test_fill_radialshort_array():
                          rtol=1e-01, atol=1e-01, equal_nan=True).all(), \
         'something wrong with VELU, is not close to CODAR VELU'
 
-    # I think that something is wrong with CODAR VELV computation.  Need to investigate further.
-    # when BEAR is ~ 90 and HEAD is 270 is when these do not approximate.
+    ########################
+    # I think that something is wrong with CODAR VELV computation.
+    # Need to investigate further.  when BEAR is ~ 90 and HEAD is 270
+    # is when these are not close or even approximate.  Might be true
+    # for HATY orientation and proximity to GS. Might be different for
+    # another site with different orientation and current with such
+    # magnitude as in the GS.
+    ########################
+
     # assert numpy.isclose(subrsd[:,rsc['VELV']], subtd[:,tc['VELV']], \
     #                      rtol=1e-01, atol=1e-01, equal_nan=True).all(), \
     #     'something wrong with VELV, is not close to CODAR VELV'
@@ -96,12 +103,13 @@ def test_fill_radialshort_array():
 
 def _generate_radialshort_header():
     """Change name to test_generate_radialshort_header when have code for test"""
+    # not a test yet
     pass
 
 def _scratch():
     ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
-    xd, xtypes_str = weighted_velocities(d, types_str, bearing_spread=0.0, weight_parameter='NONE')
+    xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=1, weight_parameter='NONE')
     xc = get_columns(xtypes_str)
 
     ifn2 = os.path.join(files, 'RadialShorts_no_weight_angres1', 'RDLx_HATY_2013_11_05_0000.ruv')

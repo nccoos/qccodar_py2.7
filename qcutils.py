@@ -328,12 +328,23 @@ def filt_datetime(input_string, pattern=None):
     return dt
 
 def find_files_to_merge(ifn, numfiles=3, sample_interval=30):
-    """
+    """Finds the files that will be used in averaging in addition to ifn,
+    based on sample_interval and numfiles to average over.
+ 
     Parameters:
     -----------
+    ifn : string
+       The complete path and filename of target date time to process.
+    numfiles : int
+       The number of files to average over, including input filename (ifn).
+    sample_interval : int
+       The sample interval in minutes. For radialmetric should be the
+       same as CODAR's output rate.
 
     Return
     ------
+    files : list of strings
+       The files to process, including ifn.
 
     """
 
@@ -356,23 +367,30 @@ def find_files_to_merge(ifn, numfiles=3, sample_interval=30):
            
 
 def do_qc(datadir, fn, patterntype):
-    """ 
+    """ Do qc and then average over 3 sample_intervals (time), 3 degrees of bearing.
     """
     # read in the data
     ifn = os.path.join(datadir, 'RadialMetric', patterntype, fn)
     d, types_str, header, footer = read_lluv_file(ifn)
 
     # read in other data to use in averaging over time
-    ifns = find_files_to_merge(ifn, numfiles=1, sample_interval=30)
+    ixfns = find_files_to_merge(ifn, numfiles=3, sample_interval=30)
+    for xfn in ixfns:
+        if xfn == ifn:
+            continue
+        d1, types_str1, _, _ = read_lluv_file(xfn)
+        if (d.shape[1] == d1.shape[1]) & (types_str == types_str1):
+            # if same number and order of columns as d, then append the data
+            d = numpy.vstack((d,d1))
 
     # do any threshold qc
     dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
    
     # do weighted averaging
-    xd, xtypes_str = weighted_velocities(d, types_str, 1.0, 'MP')
+    xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP')
 
     # output radialshort data
-    outdir = os.path.join(datadir, 'RadialShorts', patterntype)
+    outdir = os.path.join(datadir, 'RadialShorts_qcd', patterntype)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     if patterntype=='IdealPattern':
@@ -384,8 +402,8 @@ def do_qc(datadir, fn, patterntype):
         return
 
     # substitute RDLv(w) for RDLx(y) in filename
-    newfn = re.sub(r'RDL[vw]', 'RDL'+lluvtype, fn)
-    ofn = os.path.join(datadir, 'RadialShorts', patterntype, newfn)
+    rsdfn = re.sub(r'RDL[vw]', 'RDL'+lluvtype, fn)
+    ofn = os.path.join(outdir, rsdfn)
 
     # create radialshort data, first generate array then fill it
     rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
@@ -396,7 +414,6 @@ def do_qc(datadir, fn, patterntype):
     rsdfooter = footer
     # 
     write_output(ofn, rsdheader, rsd, rsdfooter)
-
 
 def batch_qc(datadir, patterntype):
     # get file listing of datadir
@@ -409,15 +426,8 @@ def batch_qc(datadir, patterntype):
         fn = os.path.basename(fullfn)
         do_qc(datadir, fn, patterntype)
 
-
-# for testing
-if __name__ == '__main__':
-    # 
-    # datadir = sys.argv[1]
-    # patterntype = sys.argv[2]
-    # patterntype = 'MeasPattern' 
-    # patterntype = 'IdealPattern'
-    
+# for debugging
+def _trial_step():
     # read in the data
     ifn = os.path.join('.', 'test', 'files', 'codar_raw', \
                    'Radialmetric_HATY_2013_11_05', \
@@ -442,3 +452,11 @@ if __name__ == '__main__':
     #
     rsc = get_columns(rsdtypes_str)
     xc = get_columns(xtypes_str)
+
+if __name__ == '__main__':
+    # 
+    # datadir = sys.argv[1]
+    # patterntype = sys.argv[2]
+    # patterntype = 'MeasPattern' 
+    # patterntype = 'IdealPattern'
+    
