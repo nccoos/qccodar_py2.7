@@ -63,7 +63,7 @@ def test_fill_radialshort_array():
     subtd = td[trows, :]
     subrsd = rsd[rsrows, :]
 
-    # 1st make sure generated columsn okay
+    # 1st make sure generated columns okay
     # these are the columns generated from d that we want to compare with CODAR radialshorts
     tcol  = numpy.array([tc['LOND'], tc['LATD'], tc['VFLG'], tc['RNGE'], tc['BEAR'], tc['SPRC']])
     rscol = numpy.array([rsc['LOND'], rsc['LATD'], rsc['VFLG'], rsc['RNGE'], rsc['BEAR'], rsc['SPRC']])
@@ -101,10 +101,59 @@ def test_fill_radialshort_array():
     #     'something wrong with VELV, is not close to CODAR VELV'
 
 
-def _generate_radialshort_header():
-    """Change name to test_generate_radialshort_header when have code for test"""
-    # not a test yet
-    pass
+def test_generate_radialshort_header():
+    ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
+    d, types_str, header, footer = read_lluv_file(ifn)
+    rsd, rsdtypes_str = generate_radialshort_array(d, types_str) 
+    ####################
+    # TESTING    
+    rsdheader = generate_radialshort_header(rsd, rsdtypes_str, header)
+    ####################
+    assert rsdheader.split('\n')[0] == '%CTF: 1.00'
+    assert re.search(r'%TableColumnTypes:.*\n', rsdheader).group() == \
+        '%TableColumnTypes: LOND LATD VELU VELV VFLG ESPC MAXV MINV EDVC ERSC XDST YDST RNGE BEAR VELO HEAD SPRC\n'
+    assert re.search(r'%TableType:.*\n', rsdheader).group() == '%TableType: LLUV RDL7\n'
+    assert re.search(r'%TableStart:.*\n', rsdheader).group()== '%TableStart:\n'
+
+    assert int(re.search(r'%TableRows:\s(\d*?)\n', rsdheader).groups()[0]) == rsd.shape[0]
+    assert int(re.search(r'%TableColumns:\s(\d*?)\n', rsdheader).groups()[0]) == rsd.shape[1]
+
+# tests for dealing with empty arrays or when there are no radials -- need empty radialshort data
+def test_generate_radialshort_empty_array_when_no_radial_data():
+    ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_01', 'RDLv_HATY_2013_11_01_1830.ruv')
+    d, types_str, header, footer = read_lluv_file(ifn)
+
+    # Make sure no data first
+    assert d.size == 0
+
+    ####################
+    # TESTING
+    rsd, rsdtypes_str = generate_radialshort_array(d, types_str) 
+    ####################
+
+    assert rsd.size == 0
+    assert rsdtypes_str == 'LOND LATD VELU VELV VFLG ESPC MAXV MINV EDVC ERSC XDST YDST RNGE BEAR VELO HEAD SPRC'
+
+def test_generate_radialshort_header_for_empty_array_when_no_radial_data():
+    ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_01', 'RDLv_HATY_2013_11_01_1830.ruv')
+    d, types_str, header, footer = read_lluv_file(ifn)
+    rsd, rsdtypes_str = generate_radialshort_array(d, types_str) 
+
+    ####################
+    # TESTING
+    rsdheader = generate_radialshort_header(rsd, rsdtypes_str, header)
+    ####################
+
+    rsc = get_columns(rsdtypes_str)
+
+    assert rsdheader.split('\n')[0] == '%CTF: 1.00'
+    assert re.search(r'%TableColumnTypes:.*\n', rsdheader).group() == \
+        '%TableColumnTypes: LOND LATD VELU VELV VFLG ESPC MAXV MINV EDVC ERSC XDST YDST RNGE BEAR VELO HEAD SPRC\n'
+    assert re.search(r'%TableType:.*\n', rsdheader).group() == '%TableType: LLUV RDL7\n'
+    assert re.search(r'%TableStart:.*\n', rsdheader).group()== '%TableStart:\n'
+
+    assert int(re.search(r'%TableRows:\s(\d*?)\n', rsdheader).groups()[0]) == 0
+    assert int(re.search(r'%TableColumns:\s(\d*?)\n', rsdheader).groups()[0]) == len(rsc)
 
 def _scratch():
     ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')

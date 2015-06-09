@@ -360,8 +360,7 @@ def find_files_to_merge(ifn, numfiles=3, sample_interval=30):
             if dt_start <= dt <= dt_end:
                 files.append(fn)
     assert len(files) <= numfiles, \
-        "Some duplicate files found since number found (%d) > numfiles (%d) needed " \
-        % len(files), numfiles
+        "Some duplicate files found since number found > numfiles needed "
     return files
            
 
@@ -372,23 +371,7 @@ def do_qc(datadir, fn, patterntype):
     ifn = os.path.join(datadir, 'RadialMetric', patterntype, fn)
     d, types_str, header, footer = read_lluv_file(ifn)
 
-    # read in other data to use in averaging over time
-    ixfns = find_files_to_merge(ifn, numfiles=3, sample_interval=30)
-    for xfn in ixfns:
-        if xfn == ifn:
-            continue
-        d1, types_str1, _, _ = read_lluv_file(xfn)
-        if (d.shape[1] == d1.shape[1]) & (types_str == types_str1):
-            # if same number and order of columns as d, then append the data
-            d = numpy.vstack((d,d1))
-
-    # do any threshold qc
-    dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
-   
-    # do weighted averaging
-    xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP')
-
-    # output radialshort data
+    # determine output directory and filename for radialshort data
     outdir = os.path.join(datadir, 'RadialShorts_qcd', patterntype)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -399,10 +382,37 @@ def do_qc(datadir, fn, patterntype):
     else:
         print 'Do not recognize patterntype='+patterntype+' -- must be IdealPattern or MeasPattern ' 
         return
-
     # substitute RDLv(w) for RDLx(y) in filename
     rsdfn = re.sub(r'RDL[vw]', 'RDL'+lluvtype, fn)
     ofn = os.path.join(outdir, rsdfn)
+
+    # handle empty radialmetric by outputting an empty radialshorts file
+    # do not try to merge other files to fill empty radialmetric for this timestampe
+    if d.size == 0:
+        rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
+        rsdheader = generate_radialshort_header(rsd, rsdtypes_str, header)
+        rsdfooter = footer
+        # 
+        write_output(ofn, rsdheader, rsd, rsdfooter)
+        return
+
+    # read in other data to use in averaging over time
+    ixfns = find_files_to_merge(ifn, numfiles=3, sample_interval=30)
+    for xfn in ixfns:
+        if xfn == ifn:
+            continue
+        d1, types_str1, _, _ = read_lluv_file(xfn)
+        if len(d.shape) == len(d1.shape) == 2:
+            if (d.shape[1] == d1.shape[1]) & (types_str == types_str1):
+                # if same number and order of columns as d, then append the data d
+                print '... ... merging: %s' % xfn
+                d = numpy.vstack((d,d1))
+
+    # do any threshold qc
+    dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
+   
+    # do weighted averaging
+    xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP')
 
     # create radialshort data, first generate array then fill it
     rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
@@ -424,14 +434,14 @@ def batch_qc(datadir, patterntype):
         do_qc(datadir, fn, patterntype)
 
 # for debugging
-def _trial_step():
+def _trial_qc():
     # read in the data
     ifn = os.path.join('.', 'test', 'files', 'codar_raw', \
                    'Radialmetric_HATY_2013_11_05', \
                    'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
     # thresholding
-    # dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
+    dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
     # weighting
     xd, xtypes_str = weighted_velocities(d, types_str, 0.0, 'SNR')
     
@@ -457,8 +467,8 @@ if __name__ == '__main__':
     # datadir = '/Users/codar/Documents/reprocessing_2015/Reprocess_HATY_70_35/'
     # patterntype = 'MeasPattern' 
     # patterntype = 'IdealPattern' 
-    try:
-        batch_qc(datadir, patterntype)
-    except:
-        pass
+    # try:
+    batch_qc(datadir, patterntype)
+    # except:
+    #     pass
     

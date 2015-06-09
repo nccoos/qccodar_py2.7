@@ -85,8 +85,14 @@ def read_lluv_file(ifn):
 
     # did not find a middle, so all comments are in header, and footer is empty
     if len(footer)<=0:
+        m = re.findall(r'^(%.*):\s*(.*)$', header, re.MULTILINE)
+        for k,v in m:
+            if k == '%TableColumnTypes':
+                types_str = v
+                break            
+      
         print 'No Radial Data in '+ ifn
-        return numpy.array([]), '', header, footer
+        return numpy.array([]), types_str, header, footer
 
     # read header that match '%(k): (v)\n' pairs on each line
     m = re.findall(r'^(%.*):\s*(.*)$', header, re.MULTILINE)
@@ -153,6 +159,9 @@ def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
     else:
         print 'generate_radial_array() : Unrecognized table_type "%s"' % (table_type,)
         return numpy.array([]), ''
+
+    if d.size == 0:
+        return numpy.array([]), rsdtypes_str
 
     # 
     # get unique rows of rangecells and bearings based on input radialmetric data
@@ -270,8 +279,12 @@ def generate_radialshort_header(rsd, rsdtypes_str, header):
     rsdheader = re.split(r'(\n%TableType)', header)[0]
 
     ncols_from_string = len(rsdtypes_str.split(' '))
-    nrows, ncols = rsd.shape
-    assert ncols == ncols_from_string, 'ncols from rsdtypes_str and rsd ncols do not match'
+    if len(rsd.shape)==2:
+        nrows, ncols = rsd.shape
+        assert ncols == ncols_from_string, 'ncols from rsdtypes_str and rsd ncols do not match'
+    else:
+        nrows = rsd.shape[0]
+        ncols = ncols_from_string
 
     lines = rsdheader.split('\n')
     # add following lines to header string to conform to radialshort data type

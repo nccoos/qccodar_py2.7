@@ -58,8 +58,8 @@ def test_read_lluv_empty_file():
     assert header.split('\n')[0] == '%CTF: 1.00'
     # the footer should be empty
     assert len(footer) == 0
-    # 
-    assert types_str == ''
+    # should still have columntypes as types_str
+    assert types_str == 'LOND LATD VELU VELV VFLG RNGE BEAR VELO HEAD SPRC SPDC MSEL MSA1 MDA1 MDA2 MSP1 MDP1 MDP2 MSW1 MDW1 MDW2 MSR1 MDR1 MDR2 MA1S MA2S MA3S MEI1 MEI2 MEI3 '
     
     # check size of data (no rows if no data)
     assert d.size == 0
