@@ -6,11 +6,7 @@
 
 QC categories:
 A. Threshold Tests -- badflag any values that fall below or above a single threshold
-B. Range Tests -- badflag values that fall outside of a range
-C. Weighted Averaging -- average several values with weights based on signal quality parameters 
-
-QC Range Tests:
-NONE TO DO YET
+B. Weighted Averaging -- average several values with weights based on signal quality parameters 
 
 QC Threshold Tests:
 1. DOA peak power (MSR1, MDR1, MDR2) < 5 dB default 
@@ -363,6 +359,9 @@ def find_files_to_merge(ifn, numfiles=3, sample_interval=30):
         if dt is not None:
             if dt_start <= dt <= dt_end:
                 files.append(fn)
+    assert len(files) <= numfiles, \
+        "Some duplicate files found since number found (%d) > numfiles (%d) needed " \
+        % len(files), numfiles
     return files
            
 
@@ -418,9 +417,7 @@ def do_qc(datadir, fn, patterntype):
 def batch_qc(datadir, patterntype):
     # get file listing of datadir
     fns = recursive_glob(os.path.join(datadir, 'RadialMetric', patterntype), 'RDL*.ruv')
-    fns.sort()
-    # perform qc on each file
-    print 'QC RadialMetric : ...'
+    print 'Processing: ...'
     for fullfn in fns:
         print fullfn
         fn = os.path.basename(fullfn)
@@ -455,8 +452,13 @@ def _trial_step():
 
 if __name__ == '__main__':
     # 
-    # datadir = sys.argv[1]
-    # patterntype = sys.argv[2]
+    datadir = sys.argv[1]
+    patterntype = sys.argv[2]
+    # datadir = '/Users/codar/Documents/reprocessing_2015/Reprocess_HATY_70_35/'
     # patterntype = 'MeasPattern' 
-    # patterntype = 'IdealPattern'
+    # patterntype = 'IdealPattern' 
+    try:
+        batch_qc(datadir, patterntype)
+    except:
+        pass
     
