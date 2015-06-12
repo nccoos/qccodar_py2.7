@@ -371,8 +371,10 @@ def do_qc(datadir, fn, patterntype):
     ifn = os.path.join(datadir, 'RadialMetric', patterntype, fn)
     d, types_str, header, footer = read_lluv_file(ifn)
 
+    test_str = 'testall_mp_weight'
+
     # determine output directory and filename for radialshort data
-    outdir = os.path.join(datadir, 'RadialShorts_qcd', patterntype)
+    outdir = os.path.join(datadir, 'RadialShorts_'+test_str, patterntype)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     if patterntype=='IdealPattern':
@@ -409,7 +411,7 @@ def do_qc(datadir, fn, patterntype):
                 d = numpy.vstack((d,d1))
 
     # do any threshold qc
-    dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
+    d = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
    
     # do weighted averaging
     xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP')
