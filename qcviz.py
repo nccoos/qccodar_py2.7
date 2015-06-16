@@ -24,6 +24,14 @@ print 'matplotlib backend: %s' % (matplotlib.get_backend(),)
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
 
+# initialize the main parameters that can be changed on the plot
+params = {'thresholds' : [5.0, 50.0, 5.0],
+          'numfiles' : 3,
+          'numdegrees' :  3,
+          'weight_parameter' : 'SNR',
+          'bearing' : 0,
+}
+
 pylab.rcParams['figure.figsize']= (11.0, 8.0)
 fig, axs = plt.subplots(3,1)
 
@@ -55,14 +63,40 @@ axs[2].set_yticklabels('')
 
 lbear, = axs[2].plot([0,compass2uv(1,45)[0]], [0,compass2uv(1,45)[1]], 'b-')
 
+# Widget functions
 def sbear_change(val):
-    bearing = numpy.round(val)
-    plot_data(d, types_str, rsd, rstypes_str, bearing)
+    global params
+    params['bearing'] = numpy.round(val)
+    plot_data(d, types_str, rsd, rstypes_str)
+    fig.canvas.draw()
+
+def wtdavg_change(label):
+    global params
+    global rsd
+    params['weight_parameter'] = label
+
+    if params['weight_parameter']=='MP':
+        axs[1].set_ylim(-125, -75)
+        axs[1].set_ylabel('MUSIC Power (dB)')
+    elif params['weight_parameter']=='SNR':
+        axs[1].set_ylim(0, 45)
+        axs[1].set_ylabel('Monopole (A3) SNR (dB)')
+    elif params['weight_parameter']=='NONE':
+        axs[1].set_ylim(0, 1)
+        axs[1].set_ylabel('No Weighting Param')
+ 
+    rsd, rstypes_str = weighted_velocities(d, types_str, params['numdegrees'], params['weight_parameter'])
+    plot_data(d, types_str, rsd, rstypes_str)
+    fig.canvas.draw()
 
 # Widgets
-axbear = plt.axes([0.45, 0.1, 0.4, 0.03]) 
-sbear = matplotlib.widgets.Slider(axbear, 'Bearing', 0, 180, valinit=0, valfmt=u'%d')
+axbear = plt.axes([0.1, 0.05, 0.8, 0.03]) 
+sbear = matplotlib.widgets.Slider(axbear, 'Bearing', 0, 359, valinit=0, valfmt=u'%d')
 sbear.on_changed(sbear_change)
+
+axradio = plt.axes([0.4, 0.1, 0.15, 0.15], aspect='equal')
+rwtdavg = matplotlib.widgets.RadioButtons(axradio, ('MP', 'SNR', 'NONE'), active=1)
+rwtdavg.on_clicked(wtdavg_change)
 
 # fig.legend((ld_good,ld_bad, lrs), ('good', 'badflagged', 'wtd averge'), 'upper left')
 
@@ -78,6 +112,14 @@ def subset_data_good(d, c, bearing):
     xrow = numpy.where( (d[:,c['BEAR']]==bearing) & (d[:,c['VFLG']]==0) )[0]
     xcol = numpy.array([c['VELO'], c['SPRC'], c['BEAR'], c['MA3S'], c['MSEL'], c['MSP1'], c['MDP1'], c['MDP2']])
     a = d[numpy.ix_(xrow, xcol)]
+    # Create array to hold each Music Power (based on MSEL)
+    MP = numpy.array(numpy.ones(a[:,0].shape)*numpy.nan) 
+    # pluck the msel-based Music Power from MSP1, MDP1 or MPD2 column
+    for msel in [1, 2, 3]:
+        which = a[:,4]==msel
+        MP[which,] = a[which, msel+4]
+    # append as last column
+    a = numpy.hstack((a,MP.reshape(MP.size,1)))
     return a
 
 def subset_data_bad(d, c, bearing):
@@ -85,6 +127,14 @@ def subset_data_bad(d, c, bearing):
     xrow = numpy.where( (d[:,c['BEAR']]==bearing) & (d[:,c['VFLG']]>0) )[0]
     xcol = numpy.array([c['VELO'], c['SPRC'], c['BEAR'], c['MA3S'], c['MSEL'], c['MSP1'], c['MDP1'], c['MDP2']])
     a = d[numpy.ix_(xrow, xcol)]
+    # Create array to hold each Music Power (based on MSEL)
+    MP = numpy.array(numpy.ones(a[:,0].shape)*numpy.nan) 
+    # pluck the msel-based Music Power from MSP1, MDP1 or MPD2 column
+    for msel in [1, 2, 3]:
+        which = a[:,4]==msel
+        MP[which,] = a[which, msel+4]
+    # append as last column
+    a = numpy.hstack((a,MP.reshape(MP.size,1)))
     return a
 
 def az2deg(az):
@@ -92,15 +142,17 @@ def az2deg(az):
     # arctan2 does this relative to (x0,y0)=(1,0)
     return numpy.arctan2(y, x)*180./numpy.pi
 
-def init_plot(d, types_str, rsd, rstypes_str, ):
+def init_plot(d, types_str, rsd, rstypes_str):
     """ Set plot and slider limits
     """
+    global params
+
     c = get_columns(types_str)
     rsc = get_columns(rstypes_str)
     xrow = numpy.where( (d[:,c['VFLG']]==0) )[0]
     allranges = numpy.unique(d[:,c['SPRC']] )
     allbearings = numpy.unique(d[xrow,c['BEAR']])
-    bearing = allbearings[0]
+    params['bearing'] = allbearings[0]
     
     axs[0].set_xlim(0, allranges.max()+2)
     axs[1].set_xlim(0, allranges.max()+2)
@@ -109,60 +161,74 @@ def init_plot(d, types_str, rsd, rstypes_str, ):
     thetas = numpy.array([az2deg(b) for b in allbearings])
     axs[2].add_patch(matplotlib.patches.Wedge((0,0), 1, thetas.min(), thetas.max(), \
                                               zorder=-1, ec='None', fc=(.9,.9,.9)))
-    # put the first bearing data into the plots
-    plot_data(d, types_str, rsd, rstypes_str, bearing)
 
     # update the slider with initialized bearings
-    sbear.valinit = bearing
+    sbear.valinit = params['bearing']
     sbear.valmin = allbearings[0]
     sbear.valmax = allbearings[-1]
 
+    # put the first bearing data into the plots
+    plot_data(d, types_str, rsd, rstypes_str)
 
-def plot_data(d, types_str, rsd, rstypes_str, bearing):
+
+def plot_data(d, types_str, rsd, rstypes_str):
     # print bearing
 
     # update new bearing line
-    lbear.set_xdata([0, compass2uv(1,bearing)[0]])
-    lbear.set_ydata([0, compass2uv(1,bearing)[1]])
+    lbear.set_xdata([0, compass2uv(1,params['bearing'])[0]])
+    lbear.set_ydata([0, compass2uv(1,params['bearing'])[1]])
 
     c = get_columns(types_str)
     rsc = get_columns(rstypes_str)
 
     # update plots with new bearing
-    rs = subset_rsdata(rsd, rsc, bearing)
-    gd = subset_data_good(d, c, bearing)
-    bd = subset_data_bad(d, c, bearing)
+    rs = subset_rsdata(rsd, rsc, params['bearing'])
+    gd = subset_data_good(d, c, params['bearing'])
+    bd = subset_data_bad(d, c, params['bearing'])
 
+    velo = 0
+    rnge = 1
+    mp = 8
+    snr = 3
     if gd.size>0:
-        ld_good.set_xdata(gd[:,1])
-        ld_good.set_ydata(gd[:,0])
-        ls_good.set_xdata(gd[:,1])
-        ls_good.set_ydata(gd[:,3])
+        ld_good.set_xdata(gd[:,rnge])
+        ld_good.set_ydata(gd[:,velo])
+        if params['weight_parameter']=='MP':
+            ls_good.set_xdata(gd[:,rnge])
+            ls_good.set_ydata(gd[:,mp])
+        elif params['weight_parameter']=='SNR':
+            ls_good.set_xdata(gd[:,rnge])
+            ls_good.set_ydata(gd[:,snr])
+        elif params['weight_parameter']=='NONE':
+            ls_good.set_xdata([])
+            ls_good.set_ydata([])
 
     if bd.size>0:
-        ld_bad.set_xdata(bd[:,1])
-        ld_bad.set_ydata(bd[:,0])
-        ls_bad.set_xdata(bd[:,1])
-        ls_bad.set_ydata(bd[:,3])
+        ld_bad.set_xdata(bd[:,rnge])
+        ld_bad.set_ydata(bd[:,velo])
+        if params['weight_parameter']=='MP':
+            ls_bad.set_xdata(bd[:,rnge])
+            ls_bad.set_ydata(bd[:,mp])
+        elif params['weight_parameter']=='SNR':
+            ls_bad.set_xdata(bd[:,rnge])
+            ls_bad.set_ydata(bd[:,snr])
+        elif params['weight_parameter']=='NONE':
+            ls_bad.set_xdata([])
+            ls_bad.set_ydata([])
 
     if rs.size>0:
         lrs.set_xdata(rs[:,1])
         lrs.set_ydata(rs[:,0])
 
 
-def get_data(datadir, fn, patterntype, weight_parameter='MP'):
+def get_data(datadir, fn, patterntype):
     """
     """
     # read in the data
     ifn = os.path.join(datadir, 'RadialMetric', patterntype, fn)
     d, types_str, header, footer = read_lluv_file(ifn)
 
-    thresholds = [5.0, 50.0, 5.0]
-    numfiles = 3
-    numdegrees = 3
-    weight_parameter = 'MP'
-
-    ixfns = find_files_to_merge(ifn, numfiles, sample_interval=30)
+    ixfns = find_files_to_merge(ifn, params['numfiles'], sample_interval=30)
     for xfn in ixfns:
         if xfn == ifn:
             continue
@@ -174,17 +240,18 @@ def get_data(datadir, fn, patterntype, weight_parameter='MP'):
                 d = numpy.vstack((d,d1))
 
     # do any threshold qc
-    d = threshold_qc_all(d, types_str, thresholds)
+    d = threshold_qc_all(d, types_str, params['thresholds'])
    
     # do weighted averaging
-    rsd, rstypes_str = weighted_velocities(d, types_str, numdegrees, weight_parameter)
+    rsd, rstypes_str = weighted_velocities(d, types_str, params['numdegrees'], params['weight_parameter'])
     
     return d, types_str, rsd, rstypes_str
+
 
 datadir = os.path.join('.', 'test', 'files', 'codar_raw')
 # datadir = '/Users/codar/Documents/reprocessing_2015/Reprocess_HATY_70_35/'
 # patterntype = 'MeasPattern' 
 patterntype = 'IdealPattern' 
 fn = 'RDLv_HATY_2013_11_05_0000.ruv'
-d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype, weight_parameter='MP')
+d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
 init_plot(d, types_str, rsd, rstypes_str)
