@@ -48,6 +48,9 @@ axs[1].set_ylabel('Monopole (A3) SNR (dB)')
 ls_good, = axs[1].plot([], [], 'go', mec='g')
 ls_bad, = axs[1].plot([], [], 'ro', mec='r', mfc='None')
 
+# Legend for upper plots
+axleg = fig.legend((ld_good,ld_bad, lrs), ('good', 'badflagged', 'wtd averge'), 'upper right')
+
 # change position of last plot to stay on left margin but make it square
 bb2 = axs[2].get_position()
 bb2.bounds = (bb2.bounds[0], bb2.bounds[1], bb2.height, bb2.height)
@@ -62,6 +65,7 @@ axs[2].set_xticklabels('')
 axs[2].set_yticklabels('')
 
 lbear, = axs[2].plot([0,compass2uv(1,45)[0]], [0,compass2uv(1,45)[1]], 'b-')
+
 
 # Widget functions
 def sbear_change(val):
@@ -89,16 +93,83 @@ def wtdavg_change(label):
     plot_data(d, types_str, rsd, rstypes_str)
     fig.canvas.draw()
 
+def stest1_change(val):
+    global params, d, types_str, rsd, rstypes_str
+    params['thresholds'][0] = val
+    d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
+    plot_data(d, types_str, rsd, rstypes_str)
+    fig.canvas.draw()
+
+def stest2_change(val):
+    global params, d, types_str, rsd, rstypes_str
+    params['thresholds'][1] = val
+    d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
+    plot_data(d, types_str, rsd, rstypes_str)
+    fig.canvas.draw()
+
+def stest3_change(val):
+    global params, d, types_str, rsd, rstypes_str
+    params['thresholds'][2] = val
+    d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
+    plot_data(d, types_str, rsd, rstypes_str)
+    fig.canvas.draw()
+
+def snumfiles_change(val):
+    global params, d, types_str, rsd, rstypes_str
+    if int(val) % 2 == 0:
+        # if even, make it an odd number
+        numfiles = round(val+1)
+    else:
+        numfiles = round(val)
+        params['numfiles'] = int(numfiles)
+        d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
+        plot_data(d, types_str, rsd, rstypes_str)
+        fig.canvas.draw()
+
+def snumdegrees_change(val):
+    global params, d, types_str, rsd, rstypes_str
+    if int(val) % 2 == 0:
+        # if even, make it an odd number
+        numdegrees = round(val+1)
+    else:
+        numdegrees = round(val)
+        params['numdegrees'] = int(numdegrees)
+        d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
+        plot_data(d, types_str, rsd, rstypes_str)
+        fig.canvas.draw()
+
+
 # Widgets
 axbear = plt.axes([0.1, 0.05, 0.8, 0.03]) 
-sbear = matplotlib.widgets.Slider(axbear, 'Bearing', 0, 359, valinit=0, valfmt=u'%d')
+sbear = matplotlib.widgets.Slider(axbear, 'Bearing', 0, 359, valinit=0, valfmt=u'%d (deg)')
 sbear.on_changed(sbear_change)
 
-axradio = plt.axes([0.4, 0.1, 0.15, 0.15], aspect='equal')
+axradio = plt.axes([0.4, 0.1, 0.15, 0.15], aspect='equal', title='Weighting Param')
 rwtdavg = matplotlib.widgets.RadioButtons(axradio, ('MP', 'SNR', 'NONE'), active=1)
 rwtdavg.on_clicked(wtdavg_change)
 
-# fig.legend((ld_good,ld_bad, lrs), ('good', 'badflagged', 'wtd averge'), 'upper left')
+# outer grid to frame inner grid of sliders
+ogs = matplotlib.gridspec.GridSpec(3,3)
+# use lower-right ogs for sliders
+igs = matplotlib.gridspec.GridSpecFromSubplotSpec(6,1,subplot_spec=ogs[-1,-1], hspace=0.0)
+
+axtest1 = plt.subplot(igs[0], title='Thresholds')
+stest1 = matplotlib.widgets.Slider(axtest1, 'DOA Power', 0., 25., valinit=5.0, valfmt=u'%3.1f (dB)')
+stest1.on_changed(stest1_change)
+axtest2 = plt.subplot(igs[1])
+stest2 = matplotlib.widgets.Slider(axtest2, 'DOA Width', 0., 100., valinit=50.0, valfmt=u'%3.1f (deg)')
+stest2.on_changed(stest2_change)
+axtest3 = plt.subplot(igs[2])
+stest3 = matplotlib.widgets.Slider(axtest3, 'SNR Mono', 0., 25., valinit=5.0, valfmt=u'%3.1f (dB)')
+stest3.on_changed(stest3_change)
+
+axnf = plt.subplot(igs[4], title='Weighting Windows')
+snumfiles = matplotlib.widgets.Slider(axnf, 'numfiles', 1, 7, valinit=3, valfmt=u'%d')
+snumfiles.on_changed(snumfiles_change)
+
+axnd = plt.subplot(igs[5])
+snumdegrees = matplotlib.widgets.Slider(axnd, 'numdegrees', 1, 7, valinit=3, valfmt=u'%d')
+snumdegrees.on_changed(snumdegrees_change)
 
 def subset_rsdata(d, c, bearing):
     # get data from qc'd and averaged (now data for RadialShorts) array
@@ -154,6 +225,7 @@ def init_plot(d, types_str, rsd, rstypes_str):
     allbearings = numpy.unique(d[xrow,c['BEAR']])
     params['bearing'] = allbearings[0]
     
+    # axs[0].title = fn ### crashing the figure !!!
     axs[0].set_xlim(0, allranges.max()+2)
     axs[1].set_xlim(0, allranges.max()+2)
 
