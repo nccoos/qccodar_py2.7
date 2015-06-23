@@ -18,6 +18,9 @@ Other GUI:
 """
 from qcutils import *
 from codarutils import *
+from sliders import IndexedSlider
+
+import sys
 
 import matplotlib 
 print 'matplotlib backend: %s' % (matplotlib.get_backend(),)
@@ -70,7 +73,7 @@ lbear, = axs[2].plot([0,compass2uv(1,45)[0]], [0,compass2uv(1,45)[1]], 'b-')
 # Widget functions
 def sbear_change(val):
     global params
-    params['bearing'] = numpy.round(val)
+    params['bearing'] = sbear.seqvals[val]
     plot_data(d, types_str, rsd, rstypes_str)
     fig.canvas.draw()
 
@@ -95,53 +98,44 @@ def wtdavg_change(label):
 
 def stest1_change(val):
     global params, d, types_str, rsd, rstypes_str
-    params['thresholds'][0] = val
+    params['thresholds'][0] = stest1.seqvals[val]
     d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
     plot_data(d, types_str, rsd, rstypes_str)
     fig.canvas.draw()
 
 def stest2_change(val):
     global params, d, types_str, rsd, rstypes_str
-    params['thresholds'][1] = val
+    params['thresholds'][1] = stest2.seqvals[val]
     d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
     plot_data(d, types_str, rsd, rstypes_str)
     fig.canvas.draw()
 
 def stest3_change(val):
     global params, d, types_str, rsd, rstypes_str
-    params['thresholds'][2] = val
+    params['thresholds'][2] = stest3.seqvals[val]
     d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
     plot_data(d, types_str, rsd, rstypes_str)
     fig.canvas.draw()
 
 def snumfiles_change(val):
     global params, d, types_str, rsd, rstypes_str
-    if int(val) % 2 == 0:
-        # if even, make it an odd number
-        numfiles = round(val+1)
-    else:
-        numfiles = round(val)
-        params['numfiles'] = int(numfiles)
-        d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
-        plot_data(d, types_str, rsd, rstypes_str)
-        fig.canvas.draw()
+    numfiles = snumfiles.seqvals[val]
+    params['numfiles'] = int(numfiles)
+    d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
+    plot_data(d, types_str, rsd, rstypes_str)
+    fig.canvas.draw()
 
 def snumdegrees_change(val):
     global params, d, types_str, rsd, rstypes_str
-    if int(val) % 2 == 0:
-        # if even, make it an odd number
-        numdegrees = round(val+1)
-    else:
-        numdegrees = round(val)
-        params['numdegrees'] = int(numdegrees)
-        d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
-        plot_data(d, types_str, rsd, rstypes_str)
-        fig.canvas.draw()
-
+    numdegrees = snumdegrees.seqvals[val]
+    params['numdegrees'] = int(numdegrees)
+    d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
+    plot_data(d, types_str, rsd, rstypes_str)
+    fig.canvas.draw()
 
 # Widgets
-axbear = plt.axes([0.1, 0.05, 0.8, 0.03]) 
-sbear = matplotlib.widgets.Slider(axbear, 'Bearing', 0, 359, valinit=0, valfmt=u'%d (deg)')
+axbear = plt.axes([0.1, 0.05, 0.8, 0.03])
+sbear = IndexedSlider(axbear, 'Bearing', seqvals=range(0,269,1), valinit=0, valfmt=u'%03d (deg)')
 sbear.on_changed(sbear_change)
 
 axradio = plt.axes([0.4, 0.1, 0.15, 0.15], aspect='equal', title='Weighting Param')
@@ -154,21 +148,21 @@ ogs = matplotlib.gridspec.GridSpec(3,3)
 igs = matplotlib.gridspec.GridSpecFromSubplotSpec(6,1,subplot_spec=ogs[-1,-1], hspace=0.0)
 
 axtest1 = plt.subplot(igs[0], title='Thresholds')
-stest1 = matplotlib.widgets.Slider(axtest1, 'DOA Power', 0., 25., valinit=5.0, valfmt=u'%3.1f (dB)')
+stest1 = IndexedSlider(axtest1, 'DOA Power', seqvals=numpy.arange(0,25,0.1), valinit=5.0, valfmt=u'%3.1f (dB)')
 stest1.on_changed(stest1_change)
 axtest2 = plt.subplot(igs[1])
-stest2 = matplotlib.widgets.Slider(axtest2, 'DOA Width', 0., 100., valinit=50.0, valfmt=u'%3.1f (deg)')
+stest2 = IndexedSlider(axtest2, 'DOA Width', seqvals=range(100,0,-1), valinit=50.0, valfmt=u'%3.1f (deg)')
 stest2.on_changed(stest2_change)
 axtest3 = plt.subplot(igs[2])
-stest3 = matplotlib.widgets.Slider(axtest3, 'SNR Mono', 0., 25., valinit=5.0, valfmt=u'%3.1f (dB)')
+stest3 = IndexedSlider(axtest3, 'SNR Mono', seqvals=numpy.arange(0,25,0.1), valinit=5.0, valfmt=u'%3.1f (dB)')
 stest3.on_changed(stest3_change)
 
 axnf = plt.subplot(igs[4], title='Weighting Windows')
-snumfiles = matplotlib.widgets.Slider(axnf, 'numfiles', 1, 7, valinit=3, valfmt=u'%d')
+snumfiles = IndexedSlider(axnf, 'numfiles', seqvals=[1,3,5,7], valinit=3, valfmt=u'%d')
 snumfiles.on_changed(snumfiles_change)
 
 axnd = plt.subplot(igs[5])
-snumdegrees = matplotlib.widgets.Slider(axnd, 'numdegrees', 1, 7, valinit=3, valfmt=u'%d')
+snumdegrees = IndexedSlider(axnd, 'numdegrees', seqvals=[1,3,5,7], valinit=3, valfmt=u'%d')
 snumdegrees.on_changed(snumdegrees_change)
 
 def subset_rsdata(d, c, bearing):
@@ -208,10 +202,23 @@ def subset_data_bad(d, c, bearing):
     a = numpy.hstack((a,MP.reshape(MP.size,1)))
     return a
 
-def az2deg(az):
+def compass2deg(az):
+    """ Convert compass azimuth to cartesian angle in degrees
+
+    https://en.wikipedia.org/wiki/Polar_coordinate_system#Converting_between_polar_and_Cartesian_coordinates
+
+    Using arctan2 does this relative to (x0,y0)=(1,0)
+    """
     x,y = compass2uv(1,az)
     # arctan2 does this relative to (x0,y0)=(1,0)
     return numpy.arctan2(y, x)*180./numpy.pi
+
+def deg2compass(deg):
+    """ Convert cartesian angle of degrees to compass azimuth"""
+    compass = 90.-deg
+    if compass < 0.:
+        compass = compass + 360.
+    return compass
 
 def init_plot(d, types_str, rsd, rstypes_str):
     """ Set plot and slider limits
@@ -223,21 +230,29 @@ def init_plot(d, types_str, rsd, rstypes_str):
     xrow = numpy.where( (d[:,c['VFLG']]==0) )[0]
     allranges = numpy.unique(d[:,c['SPRC']] )
     allbearings = numpy.unique(d[xrow,c['BEAR']])
+    thetas = numpy.array([compass2deg(b) for b in allbearings])
+    lhs = int(deg2compass(thetas.max()))
+    rhs = int(deg2compass(thetas.min()))
+    if lhs > rhs:
+        allbearings = numpy.arange(lhs, rhs+360.,1.) % 360
+    else:
+        allbearings = numpy.arange(lhs, rhs, 1.)
     params['bearing'] = allbearings[0]
     
-    # axs[0].title = fn ### crashing the figure !!!
+    fig.suptitle(fn)
     axs[0].set_xlim(0, allranges.max()+2)
     axs[1].set_xlim(0, allranges.max()+2)
 
     # add radar patch limits
-    thetas = numpy.array([az2deg(b) for b in allbearings])
     axs[2].add_patch(matplotlib.patches.Wedge((0,0), 1, thetas.min(), thetas.max(), \
                                               zorder=-1, ec='None', fc=(.9,.9,.9)))
 
-    # update the slider with initialized bearings
-    sbear.valinit = params['bearing']
-    sbear.valmin = allbearings[0]
-    sbear.valmax = allbearings[-1]
+    # reset bearing slider since we now know what the bearings are from data
+    sbear.seqvals = allbearings.tolist()
+    sbear.valinit = sbear.seqvals.index(allbearings[0])
+    sbear.minval = 0
+    sbear.maxval = len(allbearings)
+    sbear.set_val(sbear.valinit)
 
     # put the first bearing data into the plots
     plot_data(d, types_str, rsd, rstypes_str)
@@ -319,11 +334,17 @@ def get_data(datadir, fn, patterntype):
     
     return d, types_str, rsd, rstypes_str
 
+if len(sys.argv)==4:
+    datadir = sys.argv[1]
+    patterntype = sys.argv[2]
+    fn = sys.argv[3]
 
-datadir = os.path.join('.', 'test', 'files', 'codar_raw')
-# datadir = '/Users/codar/Documents/reprocessing_2015/Reprocess_HATY_70_35/'
-# patterntype = 'MeasPattern' 
-patterntype = 'IdealPattern' 
-fn = 'RDLv_HATY_2013_11_05_0000.ruv'
+elif len(sys.argv) < 2:
+    datadir = os.path.join('.', 'test', 'files', 'codar_raw')
+    # datadir = '/Users/codar/Documents/reprocessing_2015/Reprocess_HATY_70_35/'
+    # patterntype = 'MeasPattern' 
+    patterntype = 'IdealPattern' 
+    fn = 'RDLv_HATY_2013_11_05_0000.ruv'
+
 d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
 init_plot(d, types_str, rsd, rstypes_str)
