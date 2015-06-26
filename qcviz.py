@@ -31,6 +31,7 @@ import matplotlib.pylab as pylab
 params = {'thresholds' : [5.0, 50.0, 5.0],
           'numfiles' : 3,
           'numdegrees' :  3,
+          'numpoints' :  1,
           'weight_parameter' : 'SNR',
           'bearing' : 0,
 }
@@ -41,15 +42,15 @@ fig, axs = plt.subplots(3,1)
 axs[0].axhline(y=0, linewidth=1, color='k')
 axs[0].set_ylim(-150, 150)
 axs[0].set_ylabel('Radial Velocity (cm/s)')
-ld_good, = axs[0].plot([], [], 'go', mec='g')
-ld_bad, = axs[0].plot([], [], 'ro', mec='r', mfc='None')
-lrs, = axs[0].plot([], [], 'bo-')
+ld_bad, = axs[0].plot([], [], 'ro', mec='red', mfc='None')
+ld_good, = axs[0].plot([], [], 'go', mec='g', markersize=8)
+lrs, = axs[0].plot([], [], 'bo-', mec='yellow')
 
 axs[1].set_ylim(0, 45)
 axs[1].set_xlabel('Range Cell')
 axs[1].set_ylabel('Monopole (A3) SNR (dB)')
-ls_good, = axs[1].plot([], [], 'go', mec='g')
 ls_bad, = axs[1].plot([], [], 'ro', mec='r', mfc='None')
+ls_good, = axs[1].plot([], [], 'go', mec='g', markersize=8)
 
 # Legend for upper plots
 axleg = fig.legend((ld_good,ld_bad, lrs), ('good', 'badflagged', 'wtd averge'), 'upper right')
@@ -93,6 +94,7 @@ def wtdavg_change(label):
         axs[1].set_ylabel('No Weighting Param')
  
     rsd, rstypes_str = weighted_velocities(d, types_str, params['numdegrees'], params['weight_parameter'])
+    rsd = threshold_rsd_numpoints(rsd, rstypes_str, params['numpoints'])
     plot_data(d, types_str, rsd, rstypes_str)
     fig.canvas.draw()
 
@@ -133,6 +135,15 @@ def snumdegrees_change(val):
     plot_data(d, types_str, rsd, rstypes_str)
     fig.canvas.draw()
 
+def snumpoints_change(val):
+    global params, rsd, rstypes_str
+    numpoints = snumpoints.seqvals[val]
+    params['numpoints'] = int(numpoints)
+    rsd, rstypes_str = weighted_velocities(d, types_str, params['numdegrees'], params['weight_parameter'])
+    rsd = threshold_rsd_numpoints(rsd, rstypes_str, params['numpoints'])
+    plot_data(d, types_str, rsd, rstypes_str)
+    fig.canvas.draw()
+
 # Widgets
 axbear = plt.axes([0.1, 0.05, 0.8, 0.03])
 sbear = IndexedSlider(axbear, 'Bearing', seqvals=range(0,269,1), valinit=0, valfmt=u'%03d (deg)')
@@ -145,36 +156,46 @@ rwtdavg.on_clicked(wtdavg_change)
 # outer grid to frame inner grid of sliders
 ogs = matplotlib.gridspec.GridSpec(3,3)
 # use lower-right ogs for sliders
-igs = matplotlib.gridspec.GridSpecFromSubplotSpec(6,1,subplot_spec=ogs[-1,-1], hspace=0.0)
+igs = matplotlib.gridspec.GridSpecFromSubplotSpec(7,1,subplot_spec=ogs[-1,-1], hspace=0.0)
 
 axtest1 = plt.subplot(igs[0], title='Thresholds')
-stest1 = IndexedSlider(axtest1, 'DOA Power', seqvals=numpy.arange(0,25,0.1), valinit=5.0, valfmt=u'%3.1f (dB)')
+stest1 = IndexedSlider(axtest1, 'DOA Power', seqvals=numpy.arange(0,25,0.1), \
+                       valinit=params['thresholds'][0], valfmt=u'%3.1f (dB)')
 stest1.on_changed(stest1_change)
 axtest2 = plt.subplot(igs[1])
-stest2 = IndexedSlider(axtest2, 'DOA Width', seqvals=range(100,0,-1), valinit=50.0, valfmt=u'%3.1f (deg)')
+stest2 = IndexedSlider(axtest2, 'DOA Width', seqvals=range(100,0,-1), \
+                       valinit=params['thresholds'][1], valfmt=u'%3.1f (deg)')
 stest2.on_changed(stest2_change)
 axtest3 = plt.subplot(igs[2])
-stest3 = IndexedSlider(axtest3, 'SNR Mono', seqvals=numpy.arange(0,25,0.1), valinit=5.0, valfmt=u'%3.1f (dB)')
+stest3 = IndexedSlider(axtest3, 'SNR Mono', seqvals=numpy.arange(0,25,0.1), \
+                       valinit=params['thresholds'][2], valfmt=u'%3.1f (dB)')
 stest3.on_changed(stest3_change)
 
 axnf = plt.subplot(igs[4], title='Weighting Windows')
-snumfiles = IndexedSlider(axnf, 'numfiles', seqvals=[1,3,5,7], valinit=3, valfmt=u'%d')
+snumfiles = IndexedSlider(axnf, 'numfiles', seqvals=[1,3,5,7], valinit=params['numfiles'], valfmt=u'%d')
 snumfiles.on_changed(snumfiles_change)
 
 axnd = plt.subplot(igs[5])
-snumdegrees = IndexedSlider(axnd, 'numdegrees', seqvals=[1,3,5,7], valinit=3, valfmt=u'%d')
+snumdegrees = IndexedSlider(axnd, 'numdegrees', seqvals=[1,3,5,7], valinit=params['numdegrees'], valfmt=u'%d')
 snumdegrees.on_changed(snumdegrees_change)
 
-def subset_rsdata(d, c, bearing):
+axnp = plt.subplot(igs[6])
+snumpoints = IndexedSlider(axnp, 'numpoints', seqvals=range(1,11), valinit=params['numpoints'], valfmt=u'%d')
+snumpoints.on_changed(snumpoints_change)
+
+def subset_rsdata(rsd, rsc, bearing):
     # get data from qc'd and averaged (now data for RadialShorts) array
-    xrow = numpy.where( (d[:,c['BEAR']]==bearing) )[0]
-    xcol = numpy.array([c['VELO'], c['SPRC'], c['BEAR']])
-    a = d[numpy.ix_(xrow, xcol)]
+    xrow = numpy.where( (rsd[:,rsc['BEAR']]==bearing) & (rsd[:,rsc['VFLG']]==0))[0]
+    xcol = numpy.array([rsc['VELO'], rsc['SPRC'], rsc['BEAR']])
+    a = rsd[numpy.ix_(xrow, xcol)]
     return a
 
-def subset_data_good(d, c, bearing):
+def subset_data_good(d, c, bearing, numdegrees):
     # get GOOD data from RadialMetric array that is not badflagged 
-    xrow = numpy.where( (d[:,c['BEAR']]==bearing) & (d[:,c['VFLG']]==0) )[0]
+    offset = ((numdegrees-1)/2)
+    xrow = numpy.where( (d[:,c['BEAR']]>=bearing-offset) & \
+                        (d[:,c['BEAR']]<=bearing+offset) & \
+                        (d[:,c['VFLG']]==0) )[0]
     xcol = numpy.array([c['VELO'], c['SPRC'], c['BEAR'], c['MA3S'], c['MSEL'], c['MSP1'], c['MDP1'], c['MDP2']])
     a = d[numpy.ix_(xrow, xcol)]
     # Create array to hold each Music Power (based on MSEL)
@@ -187,9 +208,12 @@ def subset_data_good(d, c, bearing):
     a = numpy.hstack((a,MP.reshape(MP.size,1)))
     return a
 
-def subset_data_bad(d, c, bearing):
+def subset_data_bad(d, c, bearing, numdegrees):
     # get BAD data from RadialMetric array that is badflagged 
-    xrow = numpy.where( (d[:,c['BEAR']]==bearing) & (d[:,c['VFLG']]>0) )[0]
+    offset = ((numdegrees-1)/2)
+    xrow = numpy.where( (d[:,c['BEAR']]>=bearing-offset) & \
+                        (d[:,c['BEAR']]<=bearing+offset) & \
+                        (d[:,c['VFLG']]>0) )[0]
     xcol = numpy.array([c['VELO'], c['SPRC'], c['BEAR'], c['MA3S'], c['MSEL'], c['MSP1'], c['MDP1'], c['MDP2']])
     a = d[numpy.ix_(xrow, xcol)]
     # Create array to hold each Music Power (based on MSEL)
@@ -270,8 +294,8 @@ def plot_data(d, types_str, rsd, rstypes_str):
 
     # update plots with new bearing
     rs = subset_rsdata(rsd, rsc, params['bearing'])
-    gd = subset_data_good(d, c, params['bearing'])
-    bd = subset_data_bad(d, c, params['bearing'])
+    gd = subset_data_good(d, c, params['bearing'], params['numdegrees'])
+    bd = subset_data_bad(d, c, params['bearing'], params['numdegrees'])
 
     velo = 0
     rnge = 1
@@ -311,6 +335,8 @@ def plot_data(d, types_str, rsd, rstypes_str):
 def get_data(datadir, fn, patterntype):
     """
     """
+    global params, d, types_str, rsd, rstypes_str
+
     # read in the data
     ifn = os.path.join(datadir, 'RadialMetric', patterntype, fn)
     d, types_str, header, footer = read_lluv_file(ifn)
@@ -331,7 +357,10 @@ def get_data(datadir, fn, patterntype):
    
     # do weighted averaging
     rsd, rstypes_str = weighted_velocities(d, types_str, params['numdegrees'], params['weight_parameter'])
-    
+        
+    # check minimum numpoints 
+    # rsd = threshold_rsd_numpoints(rsd, rstypes_str, params['numpoints'])
+
     return d, types_str, rsd, rstypes_str
 
 if len(sys.argv)==4:

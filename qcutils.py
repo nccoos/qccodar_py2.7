@@ -130,6 +130,23 @@ def threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0]):
     dall = threshold_qc_monopole_snr(dall, types_str, thresholds[2])
     return dall
 
+def threshold_rsd_numpoints(rsd, rstypes_str, numpoints=1):
+    """Bad flag any radialshort data with doppler velocity count (EDVC) less than "numpoints"
+
+    Returns modified rsd matrix with VFLG column only changed if EDVC
+    count is less than or equal to numpoints.  This threshold is
+    checked after weighted_velocities()
+
+    """
+    rsc = get_columns(rstypes_str)
+    VFLG = rsc['VFLG'] # help make the test more readable
+    EDVC = rsc['EDVC']
+    rsd1=numpy.copy(rsd)
+    # 
+    bad = rsd[:,EDVC]<int(numpoints)
+    rsd1[bad, VFLG] = rsd[bad,VFLG]+(1<<12) # of dubious quality and should not be used or displayed
+    return rsd1
+   
 
 def weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP'):
     """Calculates weighted average of radial velocities (VELO) at bearing and range.
@@ -175,7 +192,7 @@ def weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP'):
     ud = ud[idx,:]
     # 
     # order of columns and labels for output data
-    xtypes_str = 'SPRC BEAR VELO ESPC MAXV MINV EDVC ERSC'
+    xtypes_str = 'VFLG SPRC BEAR VELO ESPC MAXV MINV EDVC ERSC'
     xc = get_columns(xtypes_str)
     #
     nrows, _ = ud.shape
@@ -217,6 +234,7 @@ def weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP'):
             # do no weighting and just compute the mean of all velo's
             velo = VELO.mean()
         # data
+        xd[irow,xc['VFLG']] = 0
         xd[irow,xc['SPRC']] = rngcell
         xd[irow,xc['BEAR']] = bearing
         xd[irow,xc['VELO']] = velo
@@ -410,15 +428,19 @@ def do_qc(datadir, fn, patterntype):
                 print '... ... merging: %s' % xfn
                 d = numpy.vstack((d,d1))
 
-    # do any threshold qc
+    # (1) do threshold qc on radialmetric
     d = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
    
-    # do weighted averaging
+    # (2) do weighted averaging of good 
     xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP')
 
     # create radialshort data, first generate array then fill it
     rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
     rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)[0]
+
+    # (3) require a minimum numpoints used in to form cell average
+    rsd = threshold_rsd_numpoints(rsd, rsdtypes_str, numpoints=1)
+
     # create header from radialmetric, based on new radialshort data
     rsdheader = generate_radialshort_header(rsd, rsdtypes_str, header)
     # not modifying the footer at this time
@@ -439,8 +461,8 @@ def batch_qc(datadir, patterntype):
 def _trial_qc():
     # read in the data
     ifn = os.path.join('.', 'test', 'files', 'codar_raw', \
-                   'Radialmetric_HATY_2013_11_05', \
-                   'RDLv_HATY_2013_11_05_0000.ruv')
+                       'RadialMetric', 'IdealPattern', \
+                       'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
     # thresholding
     dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
@@ -450,6 +472,10 @@ def _trial_qc():
     # create radialshort data, first generate array then fill it
     rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
     rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)[0]
+
+    # badflag not enough numpoints
+    rsd = threshold_rsd_numpoints(rsd, rsdtypes_str, numpoints=1)
+
     # modify header from radialmetric, based on new radialshort data
     rsdheader = generate_radialshort_header(rsd, rsdtypes_str, header)
     # not modifying the footer at this time

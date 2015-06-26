@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # Last modified: Time-stamp: <2015-06-05 17:36:23 Sara>
-""" new class of slider 
+""" new classes of slider 
 """
 
 import sys
