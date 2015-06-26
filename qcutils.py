@@ -187,9 +187,16 @@ def weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP'):
     ud = unique_rows(d[:,[c['SPRC'],c['BEAR'],c['VFLG']]].copy())
     # return only rows that have VFLG==0 (0 == good, >0 bad) so only get good data
     ud = ud[ud[:,2]==0]
+    allbearings = numpy.unique(ud[:,1])
+    allranges = numpy.unique(ud[:,0])
+    ud = numpy.array([[r,b] for r in allranges for b in allbearings])
+
+    ##########
     # sort this array based on rangecell (SPRC) and bearing (BEAR), remember last (col=0) is first to sort 
-    idx = numpy.lexsort((ud[:,1], ud[:,0]))
-    ud = ud[idx,:]
+    # idx = numpy.lexsort((ud[:,1], ud[:,0]))
+    # ud = ud[idx,:]
+    ##########
+
     # 
     # order of columns and labels for output data
     xtypes_str = 'VFLG SPRC BEAR VELO ESPC MAXV MINV EDVC ERSC'
@@ -246,6 +253,10 @@ def weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP'):
         xd[irow,xc['EDVC']] = VELO.size # EDVC Velocity Count 
         xd[irow,xc['ERSC']] = VELO.size # ERSC Spatial Count
                 
+    # delete extra lines (nan) not filled above
+    wherenan = numpy.where(xd[:,xc['VFLG']]!=0)[0]
+    xd = numpy.delete(xd, wherenan, axis=0)
+
     return xd, xtypes_str
 
 
