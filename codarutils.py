@@ -10,6 +10,9 @@ import re
 import fnmatch
 import datetime
 
+import geopy
+import geopy.distance
+
 import numpy
 numpy.set_printoptions(suppress=True)
 from StringIO import StringIO
@@ -25,13 +28,6 @@ def load_data(inFile):
     else:
         print 'File does not exist: '+ inFile
     return lines
-
-def _write_empty_output(ofn, header, footer):
-    """deprecating -- write header and footer only, since no radial data"""
-    f = open(ofn, 'w')
-    f.write(header)
-    f.write(footer)
-    f.close()
 
 def write_output(ofn, header, d, footer):
     """Write header, radialmetric data, and footer. """
@@ -129,20 +125,30 @@ def get_columns(types_str):
         c[label]=m.index(label) # c['VFLG']=4
     return c
 
-def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
+def generate_radialshort_array(xd, xtypes_str, header, table_type='LLUV RDL7'):
     """Generates radialshort (rsd) data array.
 
-    This function generates radialshort data (rsd) array by merging
-    unique rows of original radialmetric data (d).  It is intended to be
-    the output CSV data table (middle) of CODAR LLUV format with header,
-    middle, and footer.
+    This function generates radialshort data (rsd) array based on data
+    from weighted average data (xd).  It is the output CSV data table
+    (middle) of CODAR LLUV format with header, middle, and footer. 
+
+    If xd is empty, return empty rsd for writing out empty LLUV files.
+
+    Each LATD, LOND is computed using Vincenty's algorithm for
+    destination along a BEAR (NCW) and a distance of RNGE (km) from
+    point of origin (lat1,lon1).  Vincenty's GC is great circle
+    distance on an WGS-84 ellipsoid model between two points. This
+    requires having the CODAR Site location, and range resolution from
+    the header data or config data.
     
     Parameters
     ----------
-    d : ndarray
-       The original radialmetric data for extracting lat, lon, etc.
-    types_str : string 
+    xd : ndarray
+       QC'd and weighted average radials for each range, bearing where data were found
+    xtypes_str : string 
         The order and key-labels for each column of xd array.
+    header : string
+        The header for the current date/time radialmetric required for site origin and range resolution
     table_type : string
 
     Returns
@@ -160,75 +166,40 @@ def generate_radialshort_array(d, types_str, table_type='LLUV RDL7'):
         print 'generate_radial_array() : Unrecognized table_type "%s"' % (table_type,)
         return numpy.array([]), ''
 
-    if d.size == 0:
+    if xd.size == 0:
         return numpy.array([]), rsdtypes_str
 
-    # 
-    # get unique rows of rangecells and bearings based on input radialmetric data
-    # but also collect columns of info so we don't have to reproduce in next steps
-    c = get_columns(types_str)
-    dcol = numpy.array([c['LOND'], c['LATD'], c['VFLG'], c['RNGE'], c['BEAR'], c['SPRC']])
-    ud = unique_rows(d[:,dcol].copy())
-    # return only rows that have VFLG==0 (0 == good, >0 bad) so only get good data
-    ud = ud[ud[:,2]==0]
-    # sort this array based on rangecell (SPRC) and bearing (BEAR)
-    idx = numpy.lexsort((ud[:,4], ud[:,5]))
-    ud = ud[idx,:]
-    # 
+    # read header that match '%(k): (v)\n' pairs on each line
+    m = re.findall(r'^(%.*):\s*(.*)$', header, re.MULTILINE)
+    for k,v in m:
+        ### print k+', '+v
+        if k == '%TimeStamp':
+            #sample_dt = scanf_datetime(v, fmt='%Y %m %d %H %M %S')
+            pass
+        elif k == '%Origin':
+            lat1, lon1 = [float(x) for x in v.split()]
+        elif k == '%RangeResolutionKMeters':
+            range_resolution = float(v)
+        elif k == '%TableStart':
+            break
+
     # order of columns and labels for output data
     rsc = get_columns(rsdtypes_str)
-    nrows,_ = ud.shape
+    nrows,_ = xd.shape
     ncols = len(rsc)
     # Initialize new array for radial shorts
     rsd = numpy.ones(shape=(nrows,ncols))*numpy.nan
-    # Distribute data in to new array 
-    rscol = numpy.array([rsc['LOND'], rsc['LATD'], rsc['VFLG'], rsc['RNGE'], rsc['BEAR'], rsc['SPRC']])
-    rsd[:,rscol] = ud
-    return rsd, rsdtypes_str
-    
-def fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str):
-    """Fill in radialshort (rsd) data. 
-
-    This function fills radialshort data (rsd) by merging rows of
-    averaged velocity data (xd) where rangecell and bearing match.
-
-    Parameters
-    ----------
-    rsd : ndarray
-       The generated radialshort (rsd) data from generate_radialshort_array().
-    rsdtypes_str : string 
-        The order and key-labels for each column of rsd array.
-    xd : ndarray
-       The array with averaged values, range, bearing, and other stats used to fill in rsd array.
-    xtypes_str : string 
-        The order and key-labels for each column of xd array.
-
-    Returns
-    -------
-    rsd : ndarray
-       The modified radialshort (rsd) data.
-    rsdtypes_str : string 
-        The order and key-labels for each column of rsd array.
-
-    """
-
-    rsc = get_columns(rsdtypes_str)
-    rscells = rsd[:,[rsc['SPRC'], rsc['BEAR']]]
-    rscol = numpy.array([rsc['VELO'], rsc['ESPC'], rsc['MAXV'], rsc['MINV'], rsc['EDVC'], rsc['ERSC']])
+    rscol = numpy.array([rsc['VFLG'], rsc['SPRC'], rsc['BEAR'], rsc['VELO'], rsc['ESPC'], rsc['MAXV'], rsc['MINV'], rsc['EDVC'], rsc['ERSC']])
 
     xc = get_columns(xtypes_str)
-    xcells = xd[:,[xc['SPRC'],xc['BEAR']]]
-    xcol = numpy.array([xc['VELO'], xc['ESPC'], xc['MAXV'], xc['MINV'], xc['EDVC'], xc['ERSC']])
+    xcol = numpy.array([xc['VFLG'], xc['SPRC'], xc['BEAR'], xc['VELO'], xc['ESPC'], xc['MAXV'], xc['MINV'], xc['EDVC'], xc['ERSC']])
 
-    # check range and bearing columns are the same between rsd and xd
-    assert rscells.shape == xcells.shape, "rscells.shape(%d,%d)" % rscells.shape 
-    assert (rscells == xcells).all()
     # deal xd data into rsd by columns
     rsd[:,rscol] = xd[:,xcol]
 
-    # if not, then match row-by-row, and deal each row as matches are made
-    # for rngcell, bearing in rsd[:10, [rsc['SPRC'],rsc['BEAR']]]:
-    #     print "rangecell: %d, bearing: %d" % (rngcell, bearing)
+    ############################
+    # computations for filling in other columns of radialshort data 
+    ############################
 
     # create HEAD column based on BEAR+180
     bear = rsd[:,rsc['BEAR']]
@@ -241,14 +212,23 @@ def fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str):
     rsd[:,rsc['VELV']]=velv
     rsd[:,rsc['HEAD']]=head
     #
-    rnge = rsd[:,rsc['RNGE']]
+    rnge = range_resolution * rsd[:,rsc['SPRC']]
+    rsd[:,rsc['RNGE']]=rnge
+    #
+    # Vincenty Great Circle destination point (LATD, LOND) based on rnge, bear from site origin
+    origin = geopy.Point(lat1,lon1)
+    pts = numpy.array([geopy.distance.vincenty(kilometers=r).destination(origin, b)[0:2] for (r,b) in zip(rnge,bear)])
+    latd, lond = pts[:,0], pts[:,1]
+
+    rsd[:,rsc['LATD']]=latd
+    rsd[:,rsc['LOND']]=lond
+
     (xdist, ydist) = compass2uv(rnge,bear)
-    # relace XDIST, YDIST in radial short data
     rsd[:,rsc['XDST']]=xdist
     rsd[:,rsc['YDST']]=ydist
-    
-    return rsd, rsdtypes_str
 
+    return rsd, rsdtypes_str
+    
 def generate_radialshort_header(rsd, rsdtypes_str, header):
     """ Fill radialshort header details from radialmetric header
 

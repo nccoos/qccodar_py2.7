@@ -138,6 +138,9 @@ def threshold_rsd_numpoints(rsd, rstypes_str, numpoints=1):
     checked after weighted_velocities()
 
     """
+    if rsd.size == 0:
+        return numpy.array([])
+
     rsc = get_columns(rstypes_str)
     VFLG = rsc['VFLG'] # help make the test more readable
     EDVC = rsc['EDVC']
@@ -181,26 +184,25 @@ def weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP'):
         The order and key-labels for each column of xd array
 
     """
+    # 
+    # order of columns and labels for output data
+    xtypes_str = 'VFLG SPRC BEAR VELO ESPC MAXV MINV EDVC ERSC'
+    xc = get_columns(xtypes_str)
+    #
     c = get_columns(types_str)
     offset = ((numdegrees-1)/2)
     # 
     ud = unique_rows(d[:,[c['SPRC'],c['BEAR'],c['VFLG']]].copy())
     # return only rows that have VFLG==0 (0 == good, >0 bad) so only get good data
     ud = ud[ud[:,2]==0]
+    if ud.size == 0:
+        return numpy.array([]), xtypes_str
+    
+    #
     allbearings = numpy.unique(ud[:,1])
     allranges = numpy.unique(ud[:,0])
     ud = numpy.array([[r,b] for r in allranges for b in allbearings])
 
-    ##########
-    # sort this array based on rangecell (SPRC) and bearing (BEAR), remember last (col=0) is first to sort 
-    # idx = numpy.lexsort((ud[:,1], ud[:,0]))
-    # ud = ud[idx,:]
-    ##########
-
-    # 
-    # order of columns and labels for output data
-    xtypes_str = 'VFLG SPRC BEAR VELO ESPC MAXV MINV EDVC ERSC'
-    xc = get_columns(xtypes_str)
     #
     nrows, _ = ud.shape
     ncols = len(xc)
@@ -254,7 +256,7 @@ def weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP'):
         xd[irow,xc['ERSC']] = VELO.size # ERSC Spatial Count
                 
     # delete extra lines (nan) not filled above
-    wherenan = numpy.where(xd[:,xc['VFLG']]!=0)[0]
+    wherenan = numpy.where(numpy.isnan(xd[:,xc['VFLG']]))[0]
     xd = numpy.delete(xd, wherenan, axis=0)
 
     return xd, xtypes_str
@@ -400,7 +402,8 @@ def do_qc(datadir, fn, patterntype):
     ifn = os.path.join(datadir, 'RadialMetric', patterntype, fn)
     d, types_str, header, footer = read_lluv_file(ifn)
 
-    test_str = 'testall_mp_weight'
+    # test_str = 'testall_mp_weight_npts1'
+    test_str = 'testall_mp_weight_npts3'
 
     # determine output directory and filename for radialshort data
     outdir = os.path.join(datadir, 'RadialShorts_'+test_str, patterntype)
@@ -420,7 +423,7 @@ def do_qc(datadir, fn, patterntype):
     # handle empty radialmetric by outputting an empty radialshorts file
     # do not try to merge other files to fill empty radialmetric for this timestampe
     if d.size == 0:
-        rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
+        rsd, rsdtypes_str = generate_radialshort_array(d, types_str, header)
         rsdheader = generate_radialshort_header(rsd, rsdtypes_str, header)
         rsdfooter = footer
         # 
@@ -445,12 +448,11 @@ def do_qc(datadir, fn, patterntype):
     # (2) do weighted averaging of good 
     xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP')
 
-    # create radialshort data, first generate array then fill it
-    rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
-    rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)[0]
-
     # (3) require a minimum numpoints used in to form cell average
-    rsd = threshold_rsd_numpoints(rsd, rsdtypes_str, numpoints=1)
+    xd = threshold_rsd_numpoints(xd, xtypes_str, numpoints=3)
+
+    # create radialshort data, 
+    rsd, rsdtypes_str = generate_radialshort_array(xd, xtypes_str, header)
 
     # create header from radialmetric, based on new radialshort data
     rsdheader = generate_radialshort_header(rsd, rsdtypes_str, header)
@@ -478,11 +480,10 @@ def _trial_qc():
     # thresholding
     dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
     # weighting
-    xd, xtypes_str = weighted_velocities(d, types_str, 0.0, 'SNR')
+    xd, xtypes_str = weighted_velocities(dall, types_str, numdegrees=3, weight_parameter='MP')
     
     # create radialshort data, first generate array then fill it
-    rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
-    rsd = fill_radialshort_array(rsd, rsdtypes_str, xd, xtypes_str)[0]
+    rsd, rsdtypes_str = generate_radialshort_array(xd, xtypes_str, header)
 
     # badflag not enough numpoints
     rsd = threshold_rsd_numpoints(rsd, rsdtypes_str, numpoints=1)

@@ -359,7 +359,7 @@ def get_data(datadir, fn, patterntype):
     rsd, rstypes_str = weighted_velocities(d, types_str, params['numdegrees'], params['weight_parameter'])
         
     # check minimum numpoints 
-    # rsd = threshold_rsd_numpoints(rsd, rstypes_str, params['numpoints'])
+    rsd = threshold_rsd_numpoints(rsd, rstypes_str, params['numpoints'])
 
     return d, types_str, rsd, rstypes_str
 
