@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-10-01 11:00:24 haines>
+# Last modified: Time-stamp: <2015-10-02 08:30:21 haines>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -128,7 +128,7 @@ def threshold_qc_loop_snr(d, types_str, threshold=5.0):
     VFLG = c['VFLG'] # help make the test more readable
     MA1S = c['MA1S']
     MA2S = c['MA2S']
-    d3=numpy.copy(d)
+    d4=numpy.copy(d)
     # 
     bad = (d[:,MA1S]<float(threshold)) & (d[:,MA2S]<float(threshold))
     d4[bad, VFLG] = d[bad,VFLG]+(1<<3)

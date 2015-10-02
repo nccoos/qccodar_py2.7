@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-10-01 12:36:21 haines>
+# Last modified: Time-stamp: <2015-10-02 08:32:58 haines>
 """
 Tests for qc thresholds and weighted averaging.
 
@@ -191,3 +191,12 @@ def _scratch():
     for i,j in numpy.array(idx).T:
         # if not numpy.isnan(d1[i,j]):
             print "(%4d, %4d) %5g %5g" % (i,j, d1[i,j], td[i,j])    
+
+def generate_test4_output():
+    ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
+    d, types_str, header, footer = read_lluv_file(ifn)
+    # specify threshold in case default changes
+    d4 = threshold_qc_loop_snr(d, types_str, threshold=5.0)
+    #
+    ofn = os.path.join(files, 'Radialmetric_test4', 'RDLv_HATY_2013_11_05_0000.ruv')
+    write_output(ofn, header, d4, footer)
