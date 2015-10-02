@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-06-05 17:36:23 Sara>
+# Last modified: Time-stamp: <2015-10-02 08:30:21 haines>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -101,7 +101,7 @@ def threshold_qc_monopole_snr(d, types_str, threshold=5.0):
     """Bad flag any SNR on monopole (dB)  less than threshold value (default 5.0 dB).
 
     Flags any signal-to-noise ratio (SNR) on monopole (dB) that falls
-    below the input threshold value (default 5.0 dB) for all MSEL selections.
+    below the input threshold value (default 5.0 dB).  No dependency on MSEL selections.
 
     """
     # Test 3 SNR on monopole (dB) for all selections
@@ -115,7 +115,26 @@ def threshold_qc_monopole_snr(d, types_str, threshold=5.0):
     d3[bad, VFLG] = d[bad,VFLG]+(1<<3)
     return d3
 
-def threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0]):
+def threshold_qc_loop_snr(d, types_str, threshold=5.0):
+    """Bad flag if both loop SNR are less than threshold value (default 5.0 dB).
+
+    Flags if signal-to-noise ratio (SNR) (dB) on loop1 AND on loop2 falls
+    below the input threshold value (default 5.0 dB). No dependency on MSEL selections.
+
+    """
+    # Test 4 SNR on monopole (dB) for all selections
+    # 
+    c = get_columns(types_str)
+    VFLG = c['VFLG'] # help make the test more readable
+    MA1S = c['MA1S']
+    MA2S = c['MA2S']
+    d4=numpy.copy(d)
+    # 
+    bad = (d[:,MA1S]<float(threshold)) & (d[:,MA2S]<float(threshold))
+    d4[bad, VFLG] = d[bad,VFLG]+(1<<3)
+    return d4
+
+def threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0, 5.0]):
     """Combine all three threshold tests
 
     Returns modified matrix with VFLG column only changed values.
@@ -128,6 +147,8 @@ def threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0]):
     dall = threshold_qc_doa_peak_power(d, types_str, thresholds[0])
     dall = threshold_qc_doa_half_power_width(dall, types_str, thresholds[1])
     dall = threshold_qc_monopole_snr(dall, types_str, thresholds[2])
+    dall = threshold_qc_loop_snr(dall, types_str, thresholds[3])
+    
     return dall
 
 def threshold_rsd_numpoints(rsd, rstypes_str, numpoints=1):
@@ -444,7 +465,7 @@ def do_qc(datadir, fn, patterntype):
                 d = numpy.vstack((d,d1))
 
     # (1) do threshold qc on radialmetric
-    d = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
+    d = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0, 5.0])
    
     # (2) do weighted averaging of good 
     xd, xtypes_str = weighted_velocities(d, types_str, numdegrees=3, weight_parameter='MP')
@@ -479,7 +500,7 @@ def _trial_qc():
                        'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
     # thresholding
-    dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
+    dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0, 5.0])
     # weighting
     xd, xtypes_str = weighted_velocities(dall, types_str, numdegrees=3, weight_parameter='MP')
     

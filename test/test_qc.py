@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-06-01 15:46:36 haines>
+# Last modified: Time-stamp: <2015-10-02 08:32:58 haines>
 """
 Tests for qc thresholds and weighted averaging.
 
@@ -55,11 +55,22 @@ def test_threshold_qc_monopole_snr():
     #
     assert numpy.isclose(d3, td, equal_nan=True).all(), 'should be equal, including where NaN'
 
+def test_threshold_qc_loop_snr():
+    ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
+    d, types_str, header, footer = read_lluv_file(ifn)
+    # specify threshold in case default changes
+    d4 = threshold_qc_loop_snr(d, types_str, threshold=5.0)
+    #
+    ifn2 = os.path.join(files, 'Radialmetric_test4', 'RDLv_HATY_2013_11_05_0000.ruv')
+    td, ttypes_str, theader, tfooter = read_lluv_file(ifn2)
+    #
+    assert numpy.isclose(d4, td, equal_nan=True).all(), 'should be equal, including where NaN'
+
 def test_threshold_qc_all():
     ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
     d, types_str, header, footer = read_lluv_file(ifn)
     # specify threshold in case default changes
-    dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0])
+    dall = threshold_qc_all(d, types_str, thresholds=[5.0, 50.0, 5.0, 5.0])
     #
     ifn2 = os.path.join(files, 'Radialmetric_testall', 'RDLv_HATY_2013_11_05_0000.ruv')
     td, ttypes_str, theader, tfooter = read_lluv_file(ifn2)
@@ -180,3 +191,12 @@ def _scratch():
     for i,j in numpy.array(idx).T:
         # if not numpy.isnan(d1[i,j]):
             print "(%4d, %4d) %5g %5g" % (i,j, d1[i,j], td[i,j])    
+
+def generate_test4_output():
+    ifn = os.path.join(files, 'codar_raw', 'Radialmetric_HATY_2013_11_05', 'RDLv_HATY_2013_11_05_0000.ruv')
+    d, types_str, header, footer = read_lluv_file(ifn)
+    # specify threshold in case default changes
+    d4 = threshold_qc_loop_snr(d, types_str, threshold=5.0)
+    #
+    ofn = os.path.join(files, 'Radialmetric_test4', 'RDLv_HATY_2013_11_05_0000.ruv')
+    write_output(ofn, header, d4, footer)
