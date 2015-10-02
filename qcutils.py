@@ -403,7 +403,8 @@ def do_qc(datadir, fn, patterntype):
     d, types_str, header, footer = read_lluv_file(ifn)
 
     # test_str = 'testall_mp_weight_npts1'
-    test_str = 'testall_mp_weight_npts3'
+    # test_str = 'testall_mp_weight_npts3'
+    test_str = 'qcd'
 
     # determine output directory and filename for radialshort data
     outdir = os.path.join(datadir, 'RadialShorts_'+test_str, patterntype)
