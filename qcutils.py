@@ -122,7 +122,7 @@ def threshold_qc_loop_snr(d, types_str, threshold=5.0):
     below the input threshold value (default 5.0 dB). No dependency on MSEL selections.
 
     """
-    # Test 4 SNR on monopole (dB) for all selections
+    # Test 4 SNR on both loop antennas (dB) for all selections
     # 
     c = get_columns(types_str)
     VFLG = c['VFLG'] # help make the test more readable
