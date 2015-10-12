@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-10-02 08:30:21 haines>
+# Last modified: Time-stamp: <2015-10-12 14:39:30 haines>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -12,6 +12,7 @@ QC Threshold Tests:
 1. DOA peak power (MSR1, MDR1, MDR2) < 5 dB default 
 2. DOA 1/2 power width (3dB down) (MSW1, MDW1, MDW2) > 50 deg default
 3. SNR on monopole (MA3S) < 5 dB default
+4. SNR on both loops (MA1S and MA2S) < 5 dB
 
 Weighted Averaging:
 1. Weighting based on Music Power (MSP1, MDP1, MDP2)
