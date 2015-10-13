@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-10-12 16:58:33 haines>
+# Last modified: Time-stamp: <2015-10-13 09:07:10 haines>
 """ Vizualization tool for QC process and settings
 
 For a given bearing:
