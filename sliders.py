@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-06-05 17:36:23 Sara>
+# Last modified: Time-stamp: <2015-10-12 16:01:53 haines>
 """ new classes of slider 
 """
 
 import sys
-import matplotlib 
+import matplotlib.widgets
 import numpy
 
 class DiscreteSlider(matplotlib.widgets.Slider):

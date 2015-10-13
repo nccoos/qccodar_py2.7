@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-06-05 17:36:23 Sara>
+# Last modified: Time-stamp: <2015-10-12 16:58:33 haines>
 """ Vizualization tool for QC process and settings
 
 For a given bearing:
@@ -10,10 +10,23 @@ For a given bearing:
 Animate with bearing.
 
 Other GUI:
-  Change threshold values for each threhold test [5.0 50.0 5.0]
+  Change threshold values for each threhold test [5.0 50.0 5.0 5.0]
   Change numfiles 3 (odd int)
   Change numdegrees 3 (odd int)
   Select different weighting factor MP (MP, SNR, NONE)
+
+Using IPython console, use magic to run code as if at unix prompt and provide datadir, patterntype, fn
+e.g. %run qcviz.py [datadir] [patterntype] [fn]
+
+In[]: cd workspace/qc-codar-radialmetric/
+In[]: %run qcviz.py /Users/codar/Documents/reprocessing_2014_11/Reprocess_HATY_70_35/ IdealPattern RDLv_HATY_2013_11_05_0000.ruv
+In[]: plt.show()
+
+Using test dataset defaults
+uses input file ./test/files/codar_raw/Radialmetric/IdealPattern/RDLv_HATY_2013_11_05_0000.ruv
+In[]: cd workspace/qc-codar-radialmetric/
+In[]: %run qcutil.py 
+In[]: plt.show()
 
 """
 from qcutils import *
@@ -28,7 +41,7 @@ import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
 
 # initialize the main parameters that can be changed on the plot
-params = {'thresholds' : [5.0, 50.0, 5.0],
+params = {'thresholds' : [5.0, 50.0, 5.0, 5.0],
           'numfiles' : 3,
           'numdegrees' :  3,
           'numpoints' :  1,
