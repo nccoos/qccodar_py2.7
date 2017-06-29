@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2015-10-12 14:39:30 haines>
+# Last modified: Time-stamp: <2017-06-28 20:01:53 codar>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -398,7 +398,7 @@ def find_files_to_merge(ifn, numfiles=3, sample_interval=30):
     """
 
     indir = os.path.dirname(ifn)
-    rdlstr = re.match(r'RDL[uv]', os.path.basename(ifn)).group()
+    rdlstr = re.match(r'RDL[vw]', os.path.basename(ifn)).group()
     all_files = recursive_glob(os.path.join(indir), rdlstr+'*.ruv')
 
     delta_minutes = ((numfiles-1)/2)*sample_interval
