@@ -19,7 +19,7 @@ tests_requires= [
 
 setup(name='qccodar',
       version=__version__,
-      desciption="Apply quality controls to improve CODAR ouput",
+      description="Apply quality controls to improve CODAR ouput",
       long_description="",
       classifiers=[
     "Programming Language :: Python :: 2",
@@ -39,12 +39,12 @@ setup(name='qccodar',
       namespace_packages=["qccodar", "qccodar.qcviz", "qccodar.test"],
       install_requires=install_requires,
       extras_require={
-        'tests' : tests_require,
+        'tests' : tests_requires,
         'qcviz' : qcviz_requires
         },
       test_suite="qccodar.test",
       entry_points="""
         [console_scripts]
-        qccodar = qccodar.app::main
+        qccodar = qccodar.app:main
       """
       )
