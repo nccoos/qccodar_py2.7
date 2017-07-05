@@ -16,15 +16,42 @@ Options:
 import os
 import re
 
-# __version__ = __import__('pkg_resources').get_distribution("qccodar").version
-__version__ = "1.0"
+from pkg_resources import get_distribution
+
+from .qcutils import *
+from .codarutils import *
+
+__version__ = get_distribution("qccodar").version
+
+
+def manual(datadir, pattern):
+    """ Manual mode runs qc on all files in datadir """
+    
+    # get file listing of datadir
+    fns = recursive_glob(os.path.join(datadir, 'RadialMetric', pattern), 'RDL*.ruv')
+    print 'Processing: ...'
+
+    # do qc for each file in the datadir
+    for fullfn in fns:
+        print fullfn
+        fn = os.path.basename(fullfn)
+        do_qc(datadir, fn, pattern)
+
 
 def main():
     """Run qccodar from the command line."""
     from docopt import docopt
 
     arguments = docopt(__doc__, version="qccodar %s" % __version__)
-    print arguments
+    # print arguments
+
+    datadir, pattern = arguments['--datadir'], arguments['--pattern']
+
+    if arguments['manual']:
+        manual(datadir, pattern)
+        return
+
+    # create watchdog to monitor datadir
 
 if __name__ == "__main__":
     main()

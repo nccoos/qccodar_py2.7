@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2017-06-28 20:01:53 codar>
+# Last modified: Time-stamp: <2017-07-05 20:27:58 codar>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -30,7 +30,7 @@ import numpy
 numpy.set_printoptions(suppress=True)
 
 # 
-from codarutils import *
+from .codarutils import *
 
 def _commonly_assigned_columns():
     """
@@ -488,6 +488,7 @@ def batch_qc(datadir, patterntype):
     # get file listing of datadir
     fns = recursive_glob(os.path.join(datadir, 'RadialMetric', patterntype), 'RDL*.ruv')
     print 'Processing: ...'
+    # do qc for each file in the datadir
     for fullfn in fns:
         print fullfn
         fn = os.path.basename(fullfn)
