@@ -15,6 +15,7 @@ Options:
 
 import os
 import re
+import glob
 
 from pkg_resources import get_distribution
 
@@ -26,16 +27,44 @@ __version__ = get_distribution("qccodar").version
 
 def manual(datadir, pattern):
     """ Manual mode runs qc on all files in datadir """
+
+    fulldatadir = os.path.join(datadir, 'RadialMetric', pattern)
+
+    if not os.path.isdir(fulldatadir):
+        print "Error: qccodar manual --datadir %s --pattern %s" % (datadir, pattern)
+        print "Directory does not exist: %s " % fulldatadir
+        return
     
     # get file listing of datadir
     fns = recursive_glob(os.path.join(datadir, 'RadialMetric', pattern), 'RDL*.ruv')
-    print 'Processing: ...'
 
-    # do qc for each file in the datadir
+    # handle if no files to process
+    if not fns:
+        print "Warn: qccodar manual --datadir %s --pattern %s" % (datadir, pattern)
+        print "No files RDL*.ruv found in %s" % fulldatadir
+        return
+    
+    print 'QC Processing RadialMetric to RadialShorts_qcd: ...'
+
+    # do qc for each file in the datadir --> output to RadialShorts_qcd
     for fullfn in fns:
         print fullfn
         fn = os.path.basename(fullfn)
         do_qc(datadir, fn, pattern)
+
+    # get file list of RadialShorts
+    fns = recursive_glob(os.path.join(datadir, 'RadialShorts_qcd', pattern), 'RDL*00.ruv')
+
+    print 'Merging RadialShorts_qcd to Radials_qcd: ...'
+    outdir = os.path.join(datadir, 'Radials_qcd', pattern)
+
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
+
+    # run LLUVMerger for each
+    for fullfn in fns:
+        print fullfn
+        run_LLUVMerger(fullfn, outdir)
 
 
 def main():

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2015-06-05 17:05:49 Sara>
+# Last modified: Time-stamp: <2017-07-06 20:17:04 codar>
 """ CODAR Utilities 
 
 """
@@ -352,6 +352,17 @@ def compass2uv(wmag, wdir):
     v = wmag*numpy.cos(wdir*r)
     return (u,v)
 
+def run_LLUVMerger(ifn, ofn):
+    """ Run CODAR's LLUVMerger app in subprocess """
+
+    import subprocess
+
+    # options mimic hourly radial merge for 
+    cmdstr = '/Codar/SeaSonde/Apps/Bin/LLUVMerger -span=2.5 -lluvtype=i -angres=5 -angalign=2 -angmethod=short -method=average -minvect=2 -velcount -diag=4 -source='+ifn+' -output='+ofn
+
+    print cmdstr
+    subprocess.call(cmdstr, shell=True)
+    return
 
 
 # for testing

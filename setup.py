@@ -30,6 +30,7 @@ setup(name='qccodar',
       author_email='sarahaines@unc.edu',
       maintainer='Sara Haines',
       maintainer_email='sarahaines@unc.edu',
+
       url='http://nccoos.unc.edu',
       license='GNU',
       packages=find_packages('src'),
