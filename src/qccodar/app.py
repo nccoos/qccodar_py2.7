@@ -7,9 +7,9 @@ Usage:
 Options:
   -h --help             Show this help message and exit
   --version             Show version
+  -v --verbose          Verbocity
   -d DIR --datadir DIR  Data directory to process [default: /Codar/SeaSonde/Data]
   -p PAT --pattern PAT  Pattern type [default: IdealPattern]
-
   
 """
 
@@ -64,7 +64,7 @@ def manual(datadir, pattern):
     # run LLUVMerger for each
     for fullfn in fns:
         print fullfn
-        run_LLUVMerger(fullfn, outdir)
+        run_LLUVMerger(fullfn, outdir, pattern)
 
 
 def main():

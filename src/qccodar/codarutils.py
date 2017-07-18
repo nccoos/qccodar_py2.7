@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2017-07-06 20:17:04 codar>
+# Last modified: Time-stamp: <2017-07-18 16:43:10 codar>
 """ CODAR Utilities 
 
 """
@@ -352,29 +352,59 @@ def compass2uv(wmag, wdir):
     v = wmag*numpy.cos(wdir*r)
     return (u,v)
 
-def run_LLUVMerger(ifn, ofn):
+def run_LLUVMerger(ifn, ofn, patterntype):
     """ Run CODAR's LLUVMerger app in subprocess """
 
     import subprocess
 
-    # options mimic hourly radial merge for 
-    cmdstr = '/Codar/SeaSonde/Apps/Bin/LLUVMerger -span=2.5 -lluvtype=i -angres=5 -angalign=2 -angmethod=short -method=average -minvect=2 -velcount -diag=4 -source='+ifn+' -output='+ofn
+    ifn = './test_qccodar/RadialShorts_qcd/IdealPattern/RDLx_HATY_2013_11_04_2300.ruv'
+    ofn = './test_qccodar/Radials_qcd/IdealPattern'
+    if patterntype=='IdealPattern':
+        lluvtype = 'i'
+    elif patterntype=='MeasPattern':
+        lluvtype = 'm'
+    else:
+        print 'Do not recognize patterntype='+patterntype+' -- must be IdealPattern or MeasPattern ' 
+        return
 
-    print cmdstr
-    subprocess.call(cmdstr, shell=True)
-    return
+    # OLD WAY 
+    # cmdstr = '/Codar/SeaSonde/Apps/Bin/LLUVMerger -span=2.5 -lluvtype=i
+    #    -angres=5 -angalign=2 -angmethod=short -method=average -minvect=2
+    #    -velcount -diag=4 -source='+ifn+' -output='+ofn
+    # print cmdstr
+    # subprocess.call(cmdstr, shell=True)
+
+    # TO DO -- handle options for LLUVMerger from a config file for other systems
+    # settings for 5MHz systems on NC coast, HATY, DUCK, CORE
+    args = ['/Codar/SeaSonde/Apps/Bin/LLUVMerger',
+            '-lluvtype='+lluvtype, 
+            '-span=2.5',
+            '-angres=5',
+            '-angalign=2',
+            '-angmethod=short',
+            '-method=average',
+            '-minvect=2',
+            '-velcount',
+            '-diag=4',
+            '-source='+ifn,
+            '-output='+ofn]
+
+    print ' '.join(args)
+
+    # NEW WAY to capture both stderr and stdout
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p.wait()
+    (stdout_content, stderr_content) = p.communicate()
+    if stdout_content:
+        print stdout_content
+    if stderr_content:
+        print stderr_content
+
+    # PIPE is a readable file-like object created when Popen attribute is defined.
+    # communicate() sends stdin (if defined) and waits for exit. Next it gets stdout
+    # and sterr, then it closes all three (stdin, stdout, stderr).
+    # p.communicate() returns tuple (stdout_content, stderr_content). 
 
 
-# for testing
-if __name__ == '__main__':
-    # 
-    # datadir = sys.argv[1]
-    # patterntype = sys.argv[2]
-    # patterntype = 'MeasPattern' 
-    # patterntype = 'IdealPattern'
-    ifn = os.path.join('.', 'test', 'files', 'codar_raw', \
-                   'Radialmetric_HATY_2013_11_05', \
-                   'RDLv_HATY_2013_11_05_0000.ruv')
-    d, types_str, header, footer = read_lluv_file(ifn)
-    xd, xtypes_str = weighted_velocities(d, types_str)
-    rsd, rsdtypes_str = generate_radialshort_array(d, types_str)
+    return 
+
