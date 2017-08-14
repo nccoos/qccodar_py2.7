@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2017-07-18 16:43:10 codar>
+# Last modified: Time-stamp: <2017-08-14 17:17:55 codar>
 """ CODAR Utilities 
 
 """
@@ -356,9 +356,12 @@ def run_LLUVMerger(ifn, ofn, patterntype):
     """ Run CODAR's LLUVMerger app in subprocess """
 
     import subprocess
+    from .qcutils import filt_datetime
 
-    ifn = './test_qccodar/RadialShorts_qcd/IdealPattern/RDLx_HATY_2013_11_04_2300.ruv'
-    ofn = './test_qccodar/Radials_qcd/IdealPattern'
+    # ifn = './test_qccodar/RadialShorts_qcd/IdealPattern/RDLx_HATY_2013_11_04_2300.ruv'
+    # ofn = './test_qccodar/Radials_qcd/IdealPattern'
+    # patterntype = 'IdealPattern'
+
     if patterntype=='IdealPattern':
         lluvtype = 'i'
     elif patterntype=='MeasPattern':
@@ -376,9 +379,29 @@ def run_LLUVMerger(ifn, ofn, patterntype):
 
     # TO DO -- handle options for LLUVMerger from a config file for other systems
     # settings for 5MHz systems on NC coast, HATY, DUCK, CORE
+    # (5 CSS files outputevery 30 min)
+    # radial_output_interval (1 hour)
+    rs_output_interval = datetime.timedelta(minutes=30)
+    rs_num = 5
+    # (merge average 5*30 min = 150 min or 2.5 hours)
+    span_hrs = rs_num * (rs_output_interval.seconds/3600.) # hours, 2.5 hours
+    span_hrs_str = '%f' % span_hrs # '2.5000'
+    # if ifn (source file) is on the hour (00 min) expected time 
+    expected_timedelta = datetime.timedelta(minutes=60)
+    #
+    #       22:30
+    # 5\    23:00
+    # 4 |   23:30
+    # 3 |-- 00:00 <--expected time for merger of 5 files is 60 min behind source 
+    # 2 |   00:30
+    # 1 /   01:00 <-- source file time
+    #       01:30
+    
+    # ordered list of args, order of some options is important,
+    # e.g. -span and -startwith before -source
     args = ['/Codar/SeaSonde/Apps/Bin/LLUVMerger',
+            '-span='+span_hrs_str,
             '-lluvtype='+lluvtype, 
-            '-span=2.5',
             '-angres=5',
             '-angalign=2',
             '-angmethod=short',
@@ -395,16 +418,71 @@ def run_LLUVMerger(ifn, ofn, patterntype):
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()
     (stdout_content, stderr_content) = p.communicate()
-    if stdout_content:
-        print stdout_content
-    if stderr_content:
-        print stderr_content
 
     # PIPE is a readable file-like object created when Popen attribute is defined.
     # communicate() sends stdin (if defined) and waits for exit. Next it gets stdout
     # and sterr, then it closes all three (stdin, stdout, stderr).
     # p.communicate() returns tuple (stdout_content, stderr_content). 
 
+    # print error and return
+    if stderr_content:
+        print "Error running LLUVMerger()" 
+        print stderr_content
+        return
+
+    # Check merged file has correct time-of-merge
+    if stdout_content:
+        # stdout_content should be
+        # Running LLUVMerger 1.4.1
+        # Merging 5 Sources...
+        # Merging done.
+        # MergedFile: "/Codar/SeaSonde/Data/Radials_qcd/IdealPattern/RDLi_HATY_2013_11_05_0000.ruv"
+        print stdout_content
+
+        lines = stdout_content.split('\n')
+        # get line with MergedFile: path and filename from stdout_content
+        line = filter(lambda x: 'MergedFile:' in x, lines)[0]
+        # mfn -- extract full path and file name of merged file 
+        # /Codar/SeaSonde/Data/Radials_qcd/IdealPattern/RDLi_HATY_2013_11_05_0000.ruv
+        m = re.match(r'^MergedFile:\s*\"(.*)\"$', line)
+        if m: 
+            mfn = m.groups()[0]
+        else:
+            mfn = ''
+
+        if not mfn:
+            print 'No merged file found'
+            return
+
+        # expected datetime 
+        dt_expected = filt_datetime(ifn) - expected_timedelta
+        # actual datetime 
+        dt_actual = filt_datetime(mfn)
+
+        if dt_expected != dt_actual:
+            # rename the file to dt_expected
+            # >>> dt_actual.strftime('%Y_%m_%d_%H%M')
+            # '2013_11_05_0115'
+            outdir = os.path.dirname(mfn)
+            (basename,suffix) = os.path.splitext(os.path.basename(mfn))
+            p = re.match(r'^(.*)\d{4}_\d{2}_\d{2}_\d{4}', basename)
+            if p:
+                prefix = p.groups()[0]
+            else:
+                prefix = ''
+            # outdir = '/Codar/SeaSonde/Data/Radials_qcd/IdealPattern'
+            # prefix = 'RDLi_HATY_'
+            # >>> dt_expected.strftime('%Y_%m_%d_%H%M')
+            # '2013_11_05_0100'
+            # suffix = '.ruv'
+            newfn = os.path.join(outdir, basename+dt_expected.strftime('%Y_%m_%d_%H%M')+suffix)
+            print "Renaming %s to " % mfn
+            print " ... %s " % newfn
+            os.rename(mfn, newfn)
+
+            # TO DO -- modify %TimeStamp header info within the radial output file
+            # Header line in file still needs to be modified to the time used in the new filename
+            # e.g. %TimeStamp: 2013 11 05 01 15 00 needs to be changed to 2013 11 05 01 00 00
 
     return 
 
