@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2017-07-06 20:33:32 codar>
+# Last modified: Time-stamp: <2017-08-14 19:46:16 codar>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -426,12 +426,10 @@ def do_qc(datadir, fn, patterntype):
 
     # test_str = 'testall_mp_weight_npts1'
     # test_str = 'testall_mp_weight_npts3'
-    test_str = 'qcd'
+    # test_str = 'qcd'
 
     # determine output directory and filename for radialshort data
-    outdir = os.path.join(datadir, 'RadialShorts_'+test_str, patterntype)
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
+    outdir = os.path.join(datadir, 'RadialShorts_qcd', patterntype)
     if patterntype=='IdealPattern':
         lluvtype = 'x'
     elif patterntype=='MeasPattern':
