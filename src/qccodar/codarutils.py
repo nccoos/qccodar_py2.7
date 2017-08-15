@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2017-08-15 14:12:03 codar>
+# Last modified: Time-stamp: <2017-08-15 19:19:36 codar>
 """ CODAR Utilities 
 
 """
@@ -478,7 +478,7 @@ def run_LLUVMerger(datadir, fn, patterntype):
             # >>> dt_expected.strftime('%Y_%m_%d_%H%M')
             # '2013_11_05_0100'
             # suffix = '.ruv'
-            newfn = os.path.join(outdir, basename+dt_expected.strftime('%Y_%m_%d_%H%M')+suffix)
+            newfn = os.path.join(outdir, prefix+dt_expected.strftime('%Y_%m_%d_%H%M')+suffix)
             print "Renaming %s to " % mfn
             print " ... %s " % newfn
             os.rename(mfn, newfn)
