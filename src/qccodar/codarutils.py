@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2017-08-15 13:58:10 codar>
+# Last modified: Time-stamp: <2017-08-15 14:12:03 codar>
 """ CODAR Utilities 
 
 """
@@ -352,25 +352,25 @@ def compass2uv(wmag, wdir):
     v = wmag*numpy.cos(wdir*r)
     return (u,v)
 
-def run_LLUVMerger(datadir, fn, pattern):
+def run_LLUVMerger(datadir, fn, patterntype):
     """ Run CODAR's LLUVMerger app in subprocess """
 
     import subprocess
     from .qcutils import filt_datetime
 
-    ifn = os.path.join(datadir, 'RadialShorts_qcd', pattern, fn)
-    outdir = os.path.join(datadir, 'Radials_qcd', pattern)
+    ifn = os.path.join(datadir, 'RadialShorts_qcd', patterntype, fn)
+    outdir = os.path.join(datadir, 'Radials_qcd', patterntype)
     
     # ifn = './test_qccodar/RadialShorts_qcd/IdealPattern/RDLx_HATY_2013_11_04_2300.ruv'
     # outdir = './test_qccodar/Radials_qcd/IdealPattern'
     # patterntype = 'IdealPattern'
 
-    if pattern=='IdealPattern':
+    if patterntype=='IdealPattern':
         lluvtype = 'i'
-    elif pattern=='MeasPattern':
+    elif patterntype=='MeasPattern':
         lluvtype = 'm'
     else:
-        print 'Do not recognize patterntype='+pattern+' -- must be IdealPattern or MeasPattern ' 
+        print 'Do not recognize patterntype='+patterntype+' -- must be IdealPattern or MeasPattern ' 
         return
 
     # OLD WAY 

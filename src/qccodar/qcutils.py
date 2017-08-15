@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2017-08-14 19:46:16 codar>
+# Last modified: Time-stamp: <2017-08-15 18:08:17 codar>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -436,7 +436,7 @@ def do_qc(datadir, fn, patterntype):
         lluvtype = 'y'
     else:
         print 'Do not recognize patterntype='+patterntype+' -- must be IdealPattern or MeasPattern ' 
-        return
+        return None
     # substitute RDLv(w) for RDLx(y) in filename
     rsdfn = re.sub(r'RDL[vw]', 'RDL'+lluvtype, fn)
     ofn = os.path.join(outdir, rsdfn)
@@ -449,7 +449,7 @@ def do_qc(datadir, fn, patterntype):
         rsdfooter = footer
         # 
         write_output(ofn, rsdheader, rsd, rsdfooter)
-        return
+        return ofn
 
     # read in other data to use in averaging over time
     ixfns = find_files_to_merge(ifn, numfiles=3, sample_interval=30)
@@ -481,6 +481,7 @@ def do_qc(datadir, fn, patterntype):
     rsdfooter = footer
     # 
     write_output(ofn, rsdheader, rsd, rsdfooter)
+    return ofn
 
 # for debugging
 def _trial_qc():

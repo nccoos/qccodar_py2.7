@@ -40,7 +40,7 @@ def manual(datadir, pattern):
         print "No files RDL*.ruv found in %s" % fulldatadir
         return
     
-    print 'QC Processing RadialMetric to RadialShorts_qcd: ...'
+    print 'qccodar (manual) -- QC Processing RadialMetric to RadialShorts_qcd: ...'
 
     # do qc for each file in the datadir --> output to RadialShorts_qcd
     for fullfn in fns:
@@ -52,7 +52,7 @@ def manual(datadir, pattern):
     # depending on system and desired time span for merge, change the target time for file search
     fns = recursive_glob(os.path.join(datadir, 'RadialShorts_qcd', pattern), 'RDL*00.ruv')
 
-    print 'Merging RadialShorts_qcd to Radials_qcd: ...'
+    print 'qccodar (manual) -- Merging RadialShorts_qcd to Radials_qcd: ...'
 
     # run LLUVMerger for each
     for fullfn in fns:
@@ -62,15 +62,46 @@ def manual(datadir, pattern):
 
 def auto(datadir, pattern, fullfn):
     """ Auto mode runs qc and merge when new files generated in path being watched """
+
+    numfiles = 3
     
-    # get file listing of datadir
-    fns = recursive_glob(os.path.join(datadir, 'RadialMetric', pattern), 'RDL*.ruv')
+    # get file listing of RadialMetric folder in datadir
+    indir = os.path.join(datadir, 'RadialMetric', pattern)
+    fns = recursive_glob(indir, 'RDL*.ruv')
 
+    if numfiles == 1 and len(fns)>=1:
+        fullfn = fns[-1]
+    elif numfiles == 3 and len(fns)>=2:
+        fullfn = fns[-2]
+    elif numfiles == 5 and len(fns)>=3:
+        fullfn = fns[-3]
+    else:
+        print "qccodar (auto): Not enough data in %s to run qc" % indir
+        return
+
+    print fullfn
     fn = os.path.basename(fullfn)
-    do_qc(datadir, fn, pattern)
+    rsdfn = do_qc(datadir, fn, pattern)
 
+    # get file listing of RadialShorts_qcd folder in datadir
+    indir = os.path.join(datadir, 'RadialShorts_qcd', pattern)
+    fns = recursive_glob(indir, 'RDL*00.ruv')
+
+    if len(fns) >= 1:
+        fullfn = fns[-1]
+        if rsdfn and rsdfn == fullfn:
+            fn = os.path.basename(fullfn)
+            run_LLUVMerger(datadir, fn, pattern)
+
+# Watcher() and Handler() classes based on
+# https://www.michaelcho.me/article/using-pythons-watchdog-to-monitor-changes-to-a-directory
+# and http://ginstrom.com/scribbles/2012/05/10/continuous-integration-in-python-using-watchdog/
+#
+# Perform any actions, using any triggers that you choose.
+#
 
 class Watcher:
+    """ Watch for changes in directory and trigger an event handler """
 
     def __init__(self):
         self.observer = Observer()
@@ -91,6 +122,9 @@ class Watcher:
 
 
 class Handler(FileSystemEventHandler):
+    """
+    Specifically, handle doing qc and merge when a file is created in watched directory
+    """
 
     def __init__(self, datadir, pattern):
         self.datadir = datadir
