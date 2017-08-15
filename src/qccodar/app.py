@@ -53,12 +53,12 @@ def manual(datadir, pattern):
     fns = recursive_glob(os.path.join(datadir, 'RadialShorts_qcd', pattern), 'RDL*00.ruv')
 
     print 'Merging RadialShorts_qcd to Radials_qcd: ...'
-    outdir = os.path.join(datadir, 'Radials_qcd', pattern)
 
     # run LLUVMerger for each
     for fullfn in fns:
         print fullfn
-        run_LLUVMerger(fullfn, outdir, pattern)
+        fn = os.path.basename(fullfn)
+        run_LLUVMerger(datadir, fn, pattern)
 
 def auto(datadir, pattern, fullfn):
     """ Auto mode runs qc and merge when new files generated in path being watched """

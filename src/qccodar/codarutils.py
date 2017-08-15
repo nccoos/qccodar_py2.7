@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2017-08-14 17:17:55 codar>
+# Last modified: Time-stamp: <2017-08-15 13:58:10 codar>
 """ CODAR Utilities 
 
 """
@@ -352,22 +352,25 @@ def compass2uv(wmag, wdir):
     v = wmag*numpy.cos(wdir*r)
     return (u,v)
 
-def run_LLUVMerger(ifn, ofn, patterntype):
+def run_LLUVMerger(datadir, fn, pattern):
     """ Run CODAR's LLUVMerger app in subprocess """
 
     import subprocess
     from .qcutils import filt_datetime
 
+    ifn = os.path.join(datadir, 'RadialShorts_qcd', pattern, fn)
+    outdir = os.path.join(datadir, 'Radials_qcd', pattern)
+    
     # ifn = './test_qccodar/RadialShorts_qcd/IdealPattern/RDLx_HATY_2013_11_04_2300.ruv'
-    # ofn = './test_qccodar/Radials_qcd/IdealPattern'
+    # outdir = './test_qccodar/Radials_qcd/IdealPattern'
     # patterntype = 'IdealPattern'
 
-    if patterntype=='IdealPattern':
+    if pattern=='IdealPattern':
         lluvtype = 'i'
-    elif patterntype=='MeasPattern':
+    elif pattern=='MeasPattern':
         lluvtype = 'm'
     else:
-        print 'Do not recognize patterntype='+patterntype+' -- must be IdealPattern or MeasPattern ' 
+        print 'Do not recognize patterntype='+pattern+' -- must be IdealPattern or MeasPattern ' 
         return
 
     # OLD WAY 
@@ -410,7 +413,7 @@ def run_LLUVMerger(ifn, ofn, patterntype):
             '-velcount',
             '-diag=4',
             '-source='+ifn,
-            '-output='+ofn]
+            '-output='+outdir]
 
     print ' '.join(args)
 
@@ -479,6 +482,10 @@ def run_LLUVMerger(ifn, ofn, patterntype):
             print "Renaming %s to " % mfn
             print " ... %s " % newfn
             os.rename(mfn, newfn)
+
+            # TO DO -- remove output if not enough data merged
+            # search stdout_content for number of source files
+            # if less than x (<=2 ??) source files -- remove merged file -- not enough data for LLUVMerger
 
             # TO DO -- modify %TimeStamp header info within the radial output file
             # Header line in file still needs to be modified to the time used in the new filename
