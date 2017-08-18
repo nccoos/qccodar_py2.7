@@ -126,20 +126,26 @@ def catchup(datadir, pattern):
     # find what is new in RadialMetric folder -- that does not have corresponding RadialShort
     fns = recursive_glob(os.path.join(datadir, 'RadialMetric', pattern), 'RDL*.ruv')
     fns = [os.path.basename(fn) for fn in fns]
-    print fns
+    # print fns
     rsfns = recursive_glob(os.path.join(datadir, 'RadialShorts_qcd', pattern), 'RDL*.ruv')
     rsfns = [os.path.basename(fn) for fn in rsfns]
-    print rsfns
+    # print rsfns
     # replace RDL[xy] in radialshort names to compare with radialmetric names
     for idx, fn in enumerate(rsfns):
         rsfns[idx] = re.sub(r'RDL[xy]', 'RDL'+lluvtype, fn)
-    print rsfns
+    # print rsfns
 
     # use dict-list to identify what is new
     fns = dict([(fn,None) for fn in fns])
     rsfns = dict([(fn,None) for fn in rsfns])
     newfns = [fn for fn in fns if not fn in rsfns]
     newfns.sort()
+
+    if numfiles == 3:
+        newfns = newfns[1:]
+    elif numfiles == 5:
+        newfns = newfns[2:]
+    print "Files to process ..." 
     print newfns
 
     for fn in newfns:
@@ -188,7 +194,9 @@ class Handler(FileSystemEventHandler):
             return None
         elif event.event_type == 'created':
             print "File created - %s." % event.src_path
-            # auto(self.datadir, self.pattern, event.src_path)           
+            # auto(self.datadir, self.pattern, event.src_path)
+            # add time so file can finish being created and writtne
+            time.sleep(5)
             catchup(self.datadir, self.pattern)           
         # elif event.event_type == 'modified':
             # Taken any action here when a file is modified.

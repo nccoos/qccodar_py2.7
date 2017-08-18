@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2017-08-16 19:48:30 codar>
+# Last modified: Time-stamp: <2017-08-18 19:56:37 codar>
 """ CODAR Utilities 
 
 """
@@ -449,6 +449,8 @@ def run_LLUVMerger(datadir, fn, patterntype):
         lines = stdout_content.split('\n')
         # get line with MergedFile: path and filename from stdout_content
         line = filter(lambda x: 'MergedFile:' in x, lines)[0]
+        if debug>=2:
+            print line
         # mfn -- extract full path and file name of merged file 
         # /Codar/SeaSonde/Data/Radials_qcd/IdealPattern/RDLi_HATY_2013_11_05_0000.ruv
         m = re.match(r'^MergedFile:\s*\"(.*)\"$', line)
@@ -464,9 +466,9 @@ def run_LLUVMerger(datadir, fn, patterntype):
             return ofn
 
         # expected datetime 
-        dt_expected = filt_datetime(ifn) - expected_timedelta
+        dt_expected = filt_datetime(os.path.basename(ifn)) - expected_timedelta
         # actual datetime 
-        dt_actual = filt_datetime(mfn)
+        dt_actual = filt_datetime(os.path.basename(mfn))
 
         if dt_expected != dt_actual:
             # rename the file to dt_expected
