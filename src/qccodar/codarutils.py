@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2017-08-15 19:19:36 codar>
+# Last modified: Time-stamp: <2017-08-16 19:48:30 codar>
 """ CODAR Utilities 
 
 """
@@ -16,6 +16,8 @@ import geopy.distance
 import numpy
 numpy.set_printoptions(suppress=True)
 from StringIO import StringIO
+
+debug = 1
 
 def load_data(inFile):
     lines=None
@@ -415,7 +417,8 @@ def run_LLUVMerger(datadir, fn, patterntype):
             '-source='+ifn,
             '-output='+outdir]
 
-    print ' '.join(args)
+    if debug>=2:
+        print ' '.join(args)
 
     # NEW WAY to capture both stderr and stdout
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -440,7 +443,8 @@ def run_LLUVMerger(datadir, fn, patterntype):
         # Merging 5 Sources...
         # Merging done.
         # MergedFile: "/Codar/SeaSonde/Data/Radials_qcd/IdealPattern/RDLi_HATY_2013_11_05_0000.ruv"
-        print stdout_content
+        if debug>=2:
+            print stdout_content.strip()
 
         lines = stdout_content.split('\n')
         # get line with MergedFile: path and filename from stdout_content
@@ -452,10 +456,12 @@ def run_LLUVMerger(datadir, fn, patterntype):
             mfn = m.groups()[0]
         else:
             mfn = ''
+        ofn = mfn
 
         if not mfn:
-            print 'No merged file found'
-            return
+            if debug>=2:
+                print 'No merged file found'
+            return ofn
 
         # expected datetime 
         dt_expected = filt_datetime(ifn) - expected_timedelta
@@ -479,9 +485,10 @@ def run_LLUVMerger(datadir, fn, patterntype):
             # '2013_11_05_0100'
             # suffix = '.ruv'
             newfn = os.path.join(outdir, prefix+dt_expected.strftime('%Y_%m_%d_%H%M')+suffix)
-            print "Renaming %s to " % mfn
-            print " ... %s " % newfn
+            if debug>=2:
+                print 'MergedFile renamed: "%s"' % newfn
             os.rename(mfn, newfn)
+            ofn = newfn
 
             # TO DO -- remove output if not enough data merged
             # search stdout_content for number of source files
@@ -491,5 +498,5 @@ def run_LLUVMerger(datadir, fn, patterntype):
             # Header line in file still needs to be modified to the time used in the new filename
             # e.g. %TimeStamp: 2013 11 05 01 15 00 needs to be changed to 2013 11 05 01 00 00
 
-    return 
+    return ofn
 

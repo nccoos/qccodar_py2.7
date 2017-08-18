@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2017-08-15 18:08:17 codar>
+# Last modified: Time-stamp: <2017-08-16 18:30:32 codar>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -31,6 +31,8 @@ numpy.set_printoptions(suppress=True)
 
 # 
 from .codarutils import *
+
+debug = 1
 
 def _commonly_assigned_columns():
     """
@@ -460,7 +462,8 @@ def do_qc(datadir, fn, patterntype):
         if len(d.shape) == len(d1.shape) == 2:
             if (d.shape[1] == d1.shape[1]) & (types_str == types_str1):
                 # if same number and order of columns as d, then append the data d
-                print '... ... include: %s' % xfn
+                if debug:
+                    print '... ... include: %s' % xfn
                 d = numpy.vstack((d,d1))
 
     # (1) do threshold qc on radialmetric

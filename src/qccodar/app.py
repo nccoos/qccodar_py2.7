@@ -2,14 +2,13 @@
 
 Usage:
   qccodar (auto | manual) [options]
-  qccodar (--help | --version)
+  qccodar --help | --version
 
 Options:
-  -h --help             Show this help message and exit
-  --version             Show version
-  -v --verbose          Verbocity
-  -d DIR --datadir DIR  Data directory to process [default: /Codar/SeaSonde/Data]
-  -p PAT --pattern PAT  Pattern type [default: IdealPattern]
+  -d DIR --datadir DIR      Data directory to process [default: /Codar/SeaSonde/Data]
+  -p PAT --pattern PAT      Pattern type [default: IdealPattern]
+  -h --help                 Show this help message and exit
+  --version                 Show version
   
 """
 
@@ -23,10 +22,12 @@ import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from .qcutils import *
-from .codarutils import *
+from .qcutils import do_qc, recursive_glob
+from .codarutils import run_LLUVMerger
 
 __version__ = get_distribution("qccodar").version
+
+debug = 1
 
 def manual(datadir, pattern):
     """ Manual mode runs qc and merge on all files in datadir """
@@ -39,29 +40,31 @@ def manual(datadir, pattern):
         print "Warn: qccodar manual --datadir %s --pattern %s" % (datadir, pattern)
         print "No files RDL*.ruv found in %s" % fulldatadir
         return
-    
-    print 'qccodar (manual) -- QC Processing RadialMetric to RadialShorts_qcd: ...'
 
+    print 'qccodar (manual) -- qc step ...'
+    
     # do qc for each file in the datadir --> output to RadialShorts_qcd
     for fullfn in fns:
-        print fullfn
+        print '... input: %s' % fullfn
         fn = os.path.basename(fullfn)
-        do_qc(datadir, fn, pattern)
+        ofn = do_qc(datadir, fn, pattern)
+        print '... output: %s' % ofn
 
     # get file list of RadialShorts
     # depending on system and desired time span for merge, change the target time for file search
     fns = recursive_glob(os.path.join(datadir, 'RadialShorts_qcd', pattern), 'RDL*00.ruv')
 
-    print 'qccodar (manual) -- Merging RadialShorts_qcd to Radials_qcd: ...'
+    print 'qccodar (manual) -- merge step: ...'
 
     # run LLUVMerger for each
     for fullfn in fns:
-        print fullfn
+        print '... input: %s' % fullfn
         fn = os.path.basename(fullfn)
-        run_LLUVMerger(datadir, fn, pattern)
+        ofn = run_LLUVMerger(datadir, fn, pattern)
+        print '... output: %s' % ofn
 
 def auto(datadir, pattern, fullfn):
-    """ Auto mode runs qc and merge when new files generated in path being watched """
+    """ Auto mode runs qc and merge for each new file found in catchup() """
 
     numfiles = 3
     
@@ -69,29 +72,79 @@ def auto(datadir, pattern, fullfn):
     indir = os.path.join(datadir, 'RadialMetric', pattern)
     fns = recursive_glob(indir, 'RDL*.ruv')
 
+    try:
+        idx = fns.index(fullfn)
+    except ValueError, e:
+        idx = None
+
+    if idx == None:
+        print "qccodar (auto): Expecting RadialMetric file. "
+        print "    File %s does not match 'RDL*.ruv'" % fullfn
+        return
+    
     if numfiles == 1 and len(fns)>=1:
-        fullfn = fns[-1]
-    elif numfiles == 3 and len(fns)>=2:
-        fullfn = fns[-2]
-    elif numfiles == 5 and len(fns)>=3:
-        fullfn = fns[-3]
+        fullfn = fns[idx]
+    elif numfiles == 3 and len(fns)>=2 and idx>=1:
+        fullfn = fns[idx-1]
+    elif numfiles == 5 and len(fns)>=3 and idx>=2:
+        fullfn = fns[idx-2]
     else:
-        print "qccodar (auto): Not enough data in %s to run qc" % indir
+        print "... Nothing processed. Need more files to run qc"
         return
 
-    print fullfn
+    print '... qc input: %s' % fullfn
     fn = os.path.basename(fullfn)
     rsdfn = do_qc(datadir, fn, pattern)
+    print '... qc output: %s' % rsdfn
 
     # get file listing of RadialShorts_qcd folder in datadir
     indir = os.path.join(datadir, 'RadialShorts_qcd', pattern)
     fns = recursive_glob(indir, 'RDL*00.ruv')
 
-    if len(fns) >= 1:
-        fullfn = fns[-1]
-        if rsdfn and rsdfn == fullfn:
-            fn = os.path.basename(fullfn)
-            run_LLUVMerger(datadir, fn, pattern)
+    try:
+        idx = fns.index(rsdfn)
+    except ValueError, e:
+        idx = None
+
+    if idx != None:
+        fullfn = fns[idx]
+        print '... merge input: %s' % fullfn        
+        fn = os.path.basename(fullfn)
+        ofn = run_LLUVMerger(datadir, fn, pattern)
+        print '... merge output: %s' % ofn
+
+def catchup(datadir, pattern):
+    """ Process any new RadialMetric files when new file(s) created in path being watched """
+
+    numfiles = 3
+
+    if pattern=='IdealPattern':
+        lluvtype = 'v'
+    elif pattern=='MeasPattern':
+        lluvtype = 'w'
+
+    # find what is new in RadialMetric folder -- that does not have corresponding RadialShort
+    fns = recursive_glob(os.path.join(datadir, 'RadialMetric', pattern), 'RDL*.ruv')
+    fns = [os.path.basename(fn) for fn in fns]
+    print fns
+    rsfns = recursive_glob(os.path.join(datadir, 'RadialShorts_qcd', pattern), 'RDL*.ruv')
+    rsfns = [os.path.basename(fn) for fn in rsfns]
+    print rsfns
+    # replace RDL[xy] in radialshort names to compare with radialmetric names
+    for idx, fn in enumerate(rsfns):
+        rsfns[idx] = re.sub(r'RDL[xy]', 'RDL'+lluvtype, fn)
+    print rsfns
+
+    # use dict-list to identify what is new
+    fns = dict([(fn,None) for fn in fns])
+    rsfns = dict([(fn,None) for fn in rsfns])
+    newfns = [fn for fn in fns if not fn in rsfns]
+    newfns.sort()
+    print newfns
+
+    for fn in newfns:
+        fullfn = os.path.join(datadir, 'RadialMetric', pattern, fn)
+        auto(datadir, pattern, fullfn)
 
 # Watcher() and Handler() classes based on
 # https://www.michaelcho.me/article/using-pythons-watchdog-to-monitor-changes-to-a-directory
@@ -134,15 +187,12 @@ class Handler(FileSystemEventHandler):
         if event.is_directory:
             return None
         elif event.event_type == 'created':
-            # Take any action here when a file is first created.
-            print "Received created event - %s." % event.src_path
-            print 'datadir = %s' % self.datadir
-            print 'pattern = %s' % self.pattern
-            auto(self.datadir, self.pattern, event.src_path)
-            
-        elif event.event_type == 'modified':
+            print "File created - %s." % event.src_path
+            # auto(self.datadir, self.pattern, event.src_path)           
+            catchup(self.datadir, self.pattern)           
+        # elif event.event_type == 'modified':
             # Taken any action here when a file is modified.
-            print "Received modified event - %s." % event.src_path
+            # print "File modified - %s." % event.src_path
 
 
 def main():
@@ -180,6 +230,7 @@ def main():
 
     # create watchdog to monitor datadir
     if arguments['auto']:
+        catchup(datadir, pattern)
         w = Watcher()
         print 'Starting qccodar auto-mode (Press cntrl-C to exit)...'
         w.run(datadir, pattern)
