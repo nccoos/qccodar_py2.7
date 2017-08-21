@@ -1,7 +1,7 @@
 """Quality control CODAR (qccodar) RadialMetric data. 
 
 Usage:
-  qccodar (auto | manual) [options]
+  qccodar (auto | catchup | manual) [options]
   qccodar --help | --version
 
 Options:
@@ -232,12 +232,17 @@ def main():
     if not os.path.isdir(outdir2):
         os.makedirs(outdir2)
  
+    # run modes (manual | catchup | auto)
     if arguments['manual']:
+        # manual-mode 
         manual(datadir, pattern)
         return
-
-    # create watchdog to monitor datadir
-    if arguments['auto']:
+    elif arguments['catchup']:
+        # catchup once
+        catchup(datadir, pattern)
+        return
+    elif arguments['auto']:
+        # catchup and then create watchdog to monitor datadir
         catchup(datadir, pattern)
         w = Watcher()
         print 'Starting qccodar auto-mode (Press cntrl-C to exit)...'
