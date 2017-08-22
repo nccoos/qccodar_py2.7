@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2017-08-18 19:56:37 codar>
+# Last modified: Time-stamp: <2017-08-22 13:52:10 codar>
 """ CODAR Utilities 
 
 """
@@ -26,9 +26,11 @@ def load_data(inFile):
         lines = f.readlines()
         f.close()
         if len(lines)<=0:
-            print 'Empty file: '+ inFile           
+            print 'Empty file: '+ inFile
+            raise EOFError('Empty File: %s' % inFile)
     else:
         print 'File does not exist: '+ inFile
+        raise IOError('Error opening %s' % inFile)
     return lines
 
 def write_output(ofn, header, d, footer):
@@ -80,6 +82,7 @@ def read_lluv_file(ifn):
                ''.join(lines))
     header  = m.group('header')
     footer = m.group('tail')
+    types_str = ''
 
     # did not find a middle, so all comments are in header, and footer is empty
     if len(footer)<=0:

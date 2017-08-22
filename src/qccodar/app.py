@@ -64,7 +64,7 @@ def manual(datadir, pattern):
         print '... output: %s' % ofn
 
 def auto(datadir, pattern, fullfn):
-    """ Auto mode runs qc and merge for each new file found in catchup() """
+    """ Auto mode runs qc and merge for each fullfn """
 
     numfiles = 3
     
@@ -92,10 +92,14 @@ def auto(datadir, pattern, fullfn):
         print "... Nothing processed. Need more files to run qc"
         return
 
-    print '... qc input: %s' % fullfn
-    fn = os.path.basename(fullfn)
-    rsdfn = do_qc(datadir, fn, pattern)
-    print '... qc output: %s' % rsdfn
+    try:
+        print '... qc input: %s' % fullfn
+        fn = os.path.basename(fullfn)
+        rsdfn = do_qc(datadir, fn, pattern)
+        print '... qc output: %s' % rsdfn
+    except EOFError, e:
+        print 'Encountered empty file in qc process ... wait for next file event to process'
+        return
 
     # get file listing of RadialShorts_qcd folder in datadir
     indir = os.path.join(datadir, 'RadialShorts_qcd', pattern)
@@ -114,7 +118,7 @@ def auto(datadir, pattern, fullfn):
         print '... merge output: %s' % ofn
 
 def catchup(datadir, pattern):
-    """ Process any new RadialMetric files when new file(s) created in path being watched """
+    """ Process any new RadialMetric files not processed yet in datadir """
 
     numfiles = 3
 
@@ -164,6 +168,7 @@ class Watcher:
 
     def __init__(self):
         self.observer = Observer()
+        print 'Starting thread %s ...' % self.observer.name
 
     def run(self, datadir, pattern):
         event_handler = Handler(datadir, pattern)
@@ -173,7 +178,11 @@ class Watcher:
         try:
             while True:
                 time.sleep(5)
+                # throw the expection in worker thread in this main thread if not handled yet
+                if event_handler.exc_info:
+                    raise event_handler.exc_info[1], None, event_handler.exc_info[2]
         except:
+            raise
             self.observer.stop()
             print '... qccodar auto-mode stopped'
 
@@ -188,16 +197,21 @@ class Handler(FileSystemEventHandler):
     def __init__(self, datadir, pattern):
         self.datadir = datadir
         self.pattern = pattern
+        # attribute to add any expection
+        self.exc_info = None
 
     def on_any_event(self, event):
         if event.is_directory:
             return None
         elif event.event_type == 'created':
             print "File created - %s." % event.src_path
-            # auto(self.datadir, self.pattern, event.src_path)
-            # add time so file can finish being created and writtne
-            time.sleep(5)
-            catchup(self.datadir, self.pattern)           
+            try:
+                catchup(self.datadir, self.pattern)
+            except Exception, e:
+                # catch and store exception thrown in this worker thread
+                # e.g. IOError or KeyBoardInterrupt
+                import sys
+                self.exc_info = sys.exc_info()
         # elif event.event_type == 'modified':
             # Taken any action here when a file is modified.
             # print "File modified - %s." % event.src_path

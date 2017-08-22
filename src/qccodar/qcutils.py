@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2017-08-16 18:30:32 codar>
+# Last modified: Time-stamp: <2017-08-21 21:14:14 codar>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -416,8 +416,7 @@ def find_files_to_merge(ifn, numfiles=3, sample_interval=30):
                 files.append(fn)
     assert len(files) <= numfiles, \
         "Some duplicate files found since number found > numfiles needed "
-    return files
-           
+    return files           
 
 def do_qc(datadir, fn, patterntype):
     """ Do qc and then average over 3 sample_intervals (time), 3 degrees of bearing.
