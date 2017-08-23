@@ -1,38 +1,69 @@
-# qc-codar-radialmetric
+# qccodar
 
-This python code applies several quality control (QC) functions based CODAR SeaSonde Radialmetric data. There are two aspects to this code. The main code (qcutil.py) runs the QC functions and generates formatted RadialShort output.  The second piece (qcviz.py) is graphical tool to assess different threshold values and size of weighting window on weighted average of radial currents.
+This python code applies several quality control (QC) functions based
+on CODAR SeaSonde (COS) Radialmetric data currently output in COS
+RadialSuite version 7.x. There are two modes to this code: an auto-
+and manual-mode.  Auto-mode is for realtime processing. Manual-mode is
+for processing all RadialMetric files in a specified folder in post-processing.  
 
-### System Requirements
+## Quickstart
 
-- Python 2.7.x
-- Numpy 1.9.x
-    - https://pypi.python.org/pypi/numpy
-    - Data read into memory are stored in the N-dimensional array datatype (ndarray) for indexing and computation.
-- geopy 1.11.0
-    - https://pypi.python.org/pypi/geopy
-    - geopy.distance.vincenty()
-    - Used to compute (LAT, LON) based on range and bearing from site origin in generating RadialShorts file
-- matplotlib 1.4.3
-- Ipython
+## Installation
 
-### Usage qcutil.py:
+qccodar is a python package and runs under Python 2.7. Eventhough Mac
+OS X comes with python 2.7 installed or you can install Python
+directly from
+[python.org](https://wiki.python.org/moin/BeginnersGuide/Download), it
+is recommended to use the lightweight option from
+[Conda](https://conda.io/docs/index.html) called
+[miniconda](https://conda.io/miniconda.html).  Miniconda contains only
+Python and other libraries needed to run Conda itself; other packages
+will be downloaded and installed as requested.  Conda has a package
+manager and supports virtual environments which makes this
+installation easy. You can install the full Anaconda distribution of
+Python but it comes with over 150 packages and is quite large
+(>3Gb). The following instructions will use miniconda as the installed
+Python.
 
-    qcutil.py \<datadir\> \<PatternType\>
+While logged on as user ```codar''', open a terminal and issue the following. 
 
-### Usage qcviz.py:
+```bash
+   
+   $ wget http://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O ~/Downloads/miniconda.sh
+   $ cd ~/Downloads
+   $ bash ~/miniconda.sh -p $HOME/miniconda
+'''
 
-Use IPython console and use magic to run code as if at unix prompt and provide datadir, patterntype, fn
+Creating a conda environment allows qccodar module and its
+dependencies to run isolated from the system Python or even the
+installed miniconda (/Users/codar/miniconda/bin/python).
 
-    e.g. %run qcviz.py [datadir] [patterntype] [fn]
-    In[]: cd workspace/qc-codar-radialmetric/
-    In[]: %run qcviz.py /Users/codar/Documents/reprocessing_2014_11/Reprocess_HATY_70_35/ IdealPattern RDLv_HATY_2013_11_05_0000.ruv
-    In[]: plt.show()
+As user ```codar''', open a new terminal window to source the .bash_profile.
 
-Using test dataset defaults, the input file is ./test/files/codar_raw/Radialmetric/IdealPattern/RDLv_HATY_2013_11_05_0000.ruv
+```bash
+   
+   $ conda create --name qccodar python
+'''
 
-    In[]: cd workspace/qc-codar-radialmetric/
-    In[]: %run qcutil.py 
-    In[]: plt.show()
+To activate the environment:
+```bash
+   
+   $ source activate qccodar
+   (qccodar) $ which python
+   /Users/codar/miniconda/envs/qccodar/bin/python
+'''
+
+To install qccodar within the conda environment:
+```bash
+
+   (qccodar) $ pip install qccodar
+'''
+
+Or retrieve code distribution from github:
+```bash
+   
+'''
+
 
 ### Notes
 
@@ -52,3 +83,18 @@ Using test dataset defaults, the input file is ./test/files/codar_raw/Radialmetr
 1. Weighting based on SNR on monopole (MA3S)
 1. No weight function (None) 
  
+### System Requirements
+
+- Python 2.7.x
+- Numpy 1.9.x
+    - https://pypi.python.org/pypi/numpy
+    - Data read into memory are stored in the N-dimensional array datatype (ndarray) for indexing and computation.
+- geopy 1.11.0
+    - https://pypi.python.org/pypi/geopy
+    - geopy.distance.vincenty()
+    - Used to compute (LAT, LON) based on range and bearing from site origin in generating RadialShorts file
+- watchdog 0.8.2
+    - Used to monitor a directory for new files and trigger qc and merge process when new RadialMetric file is created
+- CODAR SeaSonde RadialSuite 7.x (version 8 does not support RadialMetric output unless requested from CODAR)
+    - /Codar/SeaSonde/Apps/Bin/LLUVMerger.app
+    - Used to merge spatial and temporal RadialShorts data to final Radial
