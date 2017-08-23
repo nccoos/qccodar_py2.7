@@ -1,0 +1,9 @@
+numpy
+geopy
+watchdog
+
+[qcviz]
+matplotlib
+
+[tests]
+nose
