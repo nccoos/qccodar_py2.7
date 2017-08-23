@@ -25,25 +25,25 @@ Python but it comes with over 150 packages and is quite large
 (>3Gb). The following instructions will use miniconda as the installed
 Python.
 
-While logged on as user ```codar''', open a terminal and issue the following. 
+While logged on as user ```codar```, open a terminal and issue the following. 
 
 ```bash
    
    $ wget http://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O ~/Downloads/miniconda.sh
    $ cd ~/Downloads
    $ bash ~/miniconda.sh -p $HOME/miniconda
-'''
+```
 
 Creating a conda environment allows qccodar module and its
 dependencies to run isolated from the system Python or even the
 installed miniconda (/Users/codar/miniconda/bin/python).
 
-As user ```codar''', open a new terminal window to source the .bash_profile.
+As user ```codar```, open a new terminal window to source the .bash_profile.
 
 ```bash
    
    $ conda create --name qccodar python
-'''
+```
 
 To activate the environment:
 ```bash
@@ -51,18 +51,18 @@ To activate the environment:
    $ source activate qccodar
    (qccodar) $ which python
    /Users/codar/miniconda/envs/qccodar/bin/python
-'''
+```
 
 To install qccodar within the conda environment:
 ```bash
 
    (qccodar) $ pip install qccodar
-'''
+```
 
 Or retrieve code distribution from github:
 ```bash
    
-'''
+```
 
 
 ### Notes
