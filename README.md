@@ -89,7 +89,33 @@ dependencies.  After configuring CODAR RadialSuite to ouput
 RadialMetric data, you can then run qccodar in either auto- or
 manual-mode. 
 
-## Configuration and Crontab Entry
+## Configuration and Crontab Entry for Realtime QC
+
+First, enable RadialMetric output:
+
+1. Edit line 21 of `AnalysisOptions.txt` in /Codar/SeaSonde/Configs/RadialConfigs.
+1. Restart AnalyzeSpectra
+
+```
+   1           !21 Enable Radial Metric Output: 0(Off), 1(Enable), 2(Enable MaxVel.)
+```
+
+Second, set crontab entry to run qccodar:
+
+1. Make a place to log data, e.g. `$ mkdir ~/logs`
+1. Place entry in crontab to run every 15 minutes and log the output
+
+```
+$ crontab -l
+1,11,21,31,41,51 * * * * /Codar/SeaSonde/Users/Scripts/collect/collect.pl
+00,15,30,45 * * * * PATH=$PATH:/sbin /Users/codar/miniconda/envs/qccodar/bin/qccodar auto >> /Users/codar/logs/qccodar-auto.log 2>&1
+```
+
+If you get `sh: sysctl: command cannot be found' in output or log,
+sysctl might be in another path.  qccodar still runs even when this
+cannot be found.  In MacOS -- sysctl is sometimes located in /usr/bin
+(or /sbin) and may not be in the path under cron.  So
+`PATH=$PATH:/usr/sbin` in the task, adds the path.
 
 ## Background
 
