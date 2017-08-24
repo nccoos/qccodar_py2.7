@@ -12,8 +12,10 @@ into standard SeaSonde processing methodology.
 
 ## Quickstart
 
-You can install the latest version using
-[pip](http://pypi.python.org/pypi/pip). After [installing
+If you are familiar with Python and your system Python installation,
+you can install the latest version using
+[pip](http://pypi.python.org/pypi/pip). Otherwise follow the detailed
+installation procedures provided below. After [installing
 pip](http://www.pip-installer.org/en/latest/installing.html) you can
 install qccodar with this command:
 
@@ -21,7 +23,7 @@ install qccodar with this command:
    $ pip install qccodar
 ```
 
-This will install Pydap together with all the required
+This will install qccodar together with all the required
 dependencies. After RadialMetric output is generated, you can run
 qccodar either in realtime (auto-mode) processing data found in
 CODAR's default data directory /Codar/SeaSonde/Data:
