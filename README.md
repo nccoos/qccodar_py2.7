@@ -61,28 +61,28 @@ Activate the environment:
    /Users/codar/miniconda/envs/qccodar/bin/python
 ```
 
-Install qccodar using pip:
+1. Install qccodar using pip:
 ```bash
    (qccodar) $ pip install qccodar
 ```
 
-Or use `git` to retrieve latest repo from the github repo:
+1. Alternatively, grab source, unpack, and install using sourced setup.py
+
+Use `git` to retrieve latest repo from the github repo:
 ```bash
    (qccodar) $ git clone https://github.com/nccoos/qccodar.git
 ```
 
-Or grab the source distribution:
+Use `curl` to grab the source distribution:
 ```bash
    $ curl -L -o "qccodar.tar.gz" http://github.com/nccoos/qccodar/tarball/master/
 ```
 
-To install from source
+Install from source
 ```bash
    (qccodar) $ cd qccodar
    (qccodar) $ python setup.py install
 ```
-
-Or download the lastest distribution (tarball) and unpack
 
 Either method will install qccodar together with all the required
 dependencies.  After configuring CODAR RadialSuite to ouput
