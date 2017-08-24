@@ -21,7 +21,7 @@ from pkg_resources import get_distribution
 import time
 
 from .qcutils import do_qc, recursive_glob
-from .codarutils import run_LLUVMerger
+from .codarutils import run_LLUVMerger, get_radialmetric_foldername
 
 __version__ = get_distribution("qccodar").version
 
