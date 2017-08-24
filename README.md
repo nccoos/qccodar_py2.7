@@ -30,13 +30,18 @@ system-installed Python.
 The following instructions show how to install and configure Miniconda2
 and qccodar to provide QC'd Radial data based on RadialMetric output.  
 
-While logged on as user `codar`, open a terminal and issue the following. 
+While logged on as user `codar`, open a terminal to download (curl) and run the installer script. 
 
 ```bash
    $ cd ~/Downloads
    $ curl https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -o "miniconda.sh"
-   $ bash ~/Downloads/miniconda.sh -p $HOME/miniconda
+   $ bash ~/Downloads/miniconda.sh -b -p $HOME/miniconda
+   $ export PATH="$HOME/miniconda/bin:$PATH"
 ```
+
+Refer to the [Conda Installation
+Guide](https://conda.io/docs/user-guide/install/index.html) for more
+details on installing Conda, making the appropriate adjustments for Miniconda2. 
 
 Creating a conda environment allows the qccodar module and its
 dependencies to run isolated from the installed Python avoiding
@@ -61,19 +66,21 @@ To install qccodar within the conda environment:
    (qccodar) $ pip install qccodar
 ```
 
-Or use `git` to retrieve code distribution from the github repo and run the setup.py:
+Or use `git` to retrieve latest repo from the github repo:
 ```bash
    (qccodar) $ git clone https://github.com/nccoos/qccodar.git
    (qccodar) $ cd qccodar
    (qccodar) $ python setup.py install
 ```
 
+Or download the lastest distribution (tarball) and unpack
+
 Either method will install qccodar together with all the required
 dependencies.  After configuring CODAR RadialSuite to ouput
 RadialMetric data, you can then run qccodar in either auto- or
 manual-mode. 
 
-## Configuration
+## Configuration and Crontab Entry
 
 ## Background
 

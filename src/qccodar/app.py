@@ -19,8 +19,8 @@ import glob
 from pkg_resources import get_distribution
 
 import time
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+## from watchdog.observers import Observer
+## from watchdog.events import FileSystemEventHandler
 
 from .qcutils import do_qc, recursive_glob
 from .codarutils import run_LLUVMerger
@@ -156,65 +156,65 @@ def catchup(datadir, pattern):
         fullfn = os.path.join(datadir, 'RadialMetric', pattern, fn)
         auto(datadir, pattern, fullfn)
 
-# Watcher() and Handler() classes based on
-# https://www.michaelcho.me/article/using-pythons-watchdog-to-monitor-changes-to-a-directory
-# and http://ginstrom.com/scribbles/2012/05/10/continuous-integration-in-python-using-watchdog/
-#
-# Perform any actions, using any triggers that you choose.
-#
+## # Watcher() and Handler() classes based on
+## # https://www.michaelcho.me/article/using-pythons-watchdog-to-monitor-changes-to-a-directory
+## # and http://ginstrom.com/scribbles/2012/05/10/continuous-integration-in-python-using-watchdog/
+## #
+## # Perform any actions, using any triggers that you choose.
+## #
 
-class Watcher:
-    """ Watch for changes in directory and trigger an event handler """
+# class Watcher:
+#     """ Watch for changes in directory and trigger an event handler """
 
-    def __init__(self):
-        self.observer = Observer()
-        print 'Starting thread %s ...' % self.observer.name
+#     def __init__(self):
+#         self.observer = Observer()
+#         print 'Starting thread %s ...' % self.observer.name
 
-    def run(self, datadir, pattern):
-        event_handler = Handler(datadir, pattern)
-        fulldatadir = os.path.join(datadir, 'RadialMetric', pattern)
-        self.observer.schedule(event_handler, fulldatadir, recursive=True)
-        self.observer.start()
-        try:
-            while True:
-                time.sleep(5)
-                # throw the expection in worker thread in this main thread if not handled yet
-                if event_handler.exc_info:
-                    raise event_handler.exc_info[1], None, event_handler.exc_info[2]
-        except:
-            raise
-            self.observer.stop()
-            print '... qccodar auto-mode stopped'
+#     def run(self, datadir, pattern):
+#         event_handler = Handler(datadir, pattern)
+#         fulldatadir = os.path.join(datadir, 'RadialMetric', pattern)
+#         self.observer.schedule(event_handler, fulldatadir, recursive=True)
+#         self.observer.start()
+#         try:
+#             while True:
+#                 time.sleep(5)
+#                 # throw the expection in worker thread in this main thread if not handled yet
+#                 if event_handler.exc_info:
+#                     raise event_handler.exc_info[1], None, event_handler.exc_info[2]
+#         except:
+#             raise
+#             self.observer.stop()
+#             print '... qccodar auto-mode stopped'
 
-        self.observer.join()
+#         self.observer.join()
 
 
-class Handler(FileSystemEventHandler):
-    """
-    Specifically, handle doing qc and merge when a file is created in watched directory
-    """
+# class Handler(FileSystemEventHandler):
+#     """
+#     Specifically, handle doing qc and merge when a file is created in watched directory
+#     """
 
-    def __init__(self, datadir, pattern):
-        self.datadir = datadir
-        self.pattern = pattern
-        # attribute to add any expection
-        self.exc_info = None
+#     def __init__(self, datadir, pattern):
+#         self.datadir = datadir
+#         self.pattern = pattern
+#         # attribute to add any expection
+#         self.exc_info = None
 
-    def on_any_event(self, event):
-        if event.is_directory:
-            return None
-        elif event.event_type == 'created':
-            print "File created - %s." % event.src_path
-            try:
-                catchup(self.datadir, self.pattern)
-            except Exception, e:
-                # catch and store exception thrown in this worker thread
-                # e.g. IOError or KeyBoardInterrupt
-                import sys
-                self.exc_info = sys.exc_info()
-        # elif event.event_type == 'modified':
-            # Taken any action here when a file is modified.
-            # print "File modified - %s." % event.src_path
+#     def on_any_event(self, event):
+#         if event.is_directory:
+#             return None
+#         elif event.event_type == 'created':
+#             print "File created - %s." % event.src_path
+#             try:
+#                 catchup(self.datadir, self.pattern)
+#             except Exception, e:
+#                 # catch and store exception thrown in this worker thread
+#                 # e.g. IOError or KeyBoardInterrupt
+#                 import sys
+#                 self.exc_info = sys.exc_info()
+#         # elif event.event_type == 'modified':
+#             # Taken any action here when a file is modified.
+#             # print "File modified - %s." % event.src_path
 
 
 def main():
@@ -258,9 +258,9 @@ def main():
     elif arguments['auto']:
         # catchup and then create watchdog to monitor datadir
         catchup(datadir, pattern)
-        w = Watcher()
-        print 'Starting qccodar auto-mode (Press cntrl-C to exit)...'
-        w.run(datadir, pattern)
+        ##  w = Watcher()
+        ## # print 'Starting qccodar auto-mode (Press cntrl-C to exit)...'
+        ## # w.run(datadir, pattern)
         return
 
 if __name__ == "__main__":
