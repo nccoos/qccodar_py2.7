@@ -54,14 +54,14 @@ As user `codar`, open a new terminal window to source the .bash_profile.
    $ conda create --name qccodar python
 ```
 
-To activate the environment:
+Activate the environment:
 ```bash
    $ source activate qccodar
    (qccodar) $ which python
    /Users/codar/miniconda/envs/qccodar/bin/python
 ```
 
-To install qccodar within the conda environment:
+Install qccodar using pip:
 ```bash
    (qccodar) $ pip install qccodar
 ```
@@ -69,6 +69,15 @@ To install qccodar within the conda environment:
 Or use `git` to retrieve latest repo from the github repo:
 ```bash
    (qccodar) $ git clone https://github.com/nccoos/qccodar.git
+```
+
+Or grab the source distribution:
+```bash
+   $ curl -L -o "qccodar.tar.gz" http://github.com/nccoos/qccodar/tarball/master/
+```
+
+To install from source
+```bash
    (qccodar) $ cd qccodar
    (qccodar) $ python setup.py install
 ```
