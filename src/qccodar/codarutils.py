@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Last modified: Time-stamp: <2017-08-22 13:52:10 codar>
+# Last modified: Time-stamp: <2017-08-24 19:23:55 codar>
 """ CODAR Utilities 
 
 """
@@ -119,6 +119,16 @@ def read_lluv_file(ifn):
     d = numpy.loadtxt(s, comments='%')
     # lat, lon, u, v = numpy.loadtxt(s, usecols=(0,1,2,3), comments='%', unpack=True)
     return d, types_str, header, footer
+
+def get_radialmetric_foldername(datadir, pattern='?adial*etric*'):
+    """ Slightly different variances in the name of the folder for RadialMetric[s] data"""
+    fns = os.listdir(datadir)
+    mfns = fnmatch.filter(fns, pattern)
+    if mfns:
+        foldername = mfns[0]
+    else:
+        foldername = ''
+    return foldername
 
 def get_columns(types_str):
     # use dict to store column label and it's column number

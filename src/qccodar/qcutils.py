@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2017-08-21 21:14:14 codar>
+# Last modified: Time-stamp: <2017-08-24 19:38:16 codar>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -422,7 +422,8 @@ def do_qc(datadir, fn, patterntype):
     """ Do qc and then average over 3 sample_intervals (time), 3 degrees of bearing.
     """
     # read in the data
-    ifn = os.path.join(datadir, 'RadialMetric', patterntype, fn)
+    rmfoldername = get_radialmetric_foldername(datadir)
+    ifn = os.path.join(datadir, rmfoldername, patterntype, fn)
     d, types_str, header, footer = read_lluv_file(ifn)
 
     # test_str = 'testall_mp_weight_npts1'

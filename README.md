@@ -100,7 +100,7 @@ Activate the environment:
    (qccodar) $ pip install qccodar
 ```
 
-1. Alternatively, grab source, unpack, and install using sourced setup.py
+2. Alternatively, grab source, unpack, and install using sourced setup.py
 
 Use `git` to retrieve latest repo from the github repo:
 ```bash
@@ -145,11 +145,11 @@ $ crontab -l
 00,15,30,45 * * * * PATH=$PATH:/sbin /Users/codar/miniconda/envs/qccodar/bin/qccodar auto >> /Users/codar/logs/qccodar-auto.log 2>&1
 ```
 
-If you get `sh: sysctl: command cannot be found' in output or log,
+If you get `sh: sysctl: command cannot be found` in output or log,
 sysctl might be in another path.  qccodar still runs even when this
 cannot be found.  In MacOS -- sysctl is sometimes located in /usr/bin
-(or /sbin) and may not be in the path under cron.  So
-`PATH=$PATH:/usr/sbin` in the task, adds the path.
+(or /sbin) and may not be in the path under cron.  Placing
+`PATH=$PATH:/usr/sbin` in the task entry, adds the path.
 
 ## Background
 

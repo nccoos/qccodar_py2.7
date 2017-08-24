@@ -30,8 +30,9 @@ debug = 1
 def manual(datadir, pattern):
     """ Manual mode runs qc and merge on all files in datadir """
 
+    rmfoldername = get_radialmetric_foldername(datadir)
     # get file listing of datadir
-    fns = recursive_glob(os.path.join(datadir, 'RadialMetric', pattern), 'RDL*.ruv')
+    fns = recursive_glob(os.path.join(datadir, rmfoldername, pattern), 'RDL*.ruv')
 
     # handle if no files to process
     if not fns:
@@ -67,7 +68,8 @@ def auto(datadir, pattern, fullfn):
     numfiles = 3
     
     # get file listing of RadialMetric folder in datadir
-    indir = os.path.join(datadir, 'RadialMetric', pattern)
+    rmfoldername = get_radialmetric_foldername(datadir)
+    indir = os.path.join(datadir, rmfoldername, pattern)
     fns = recursive_glob(indir, 'RDL*.ruv')
 
     try:
@@ -126,7 +128,8 @@ def catchup(datadir, pattern):
         lluvtype = 'w'
 
     # find what is new in RadialMetric folder -- that does not have corresponding RadialShort
-    fns = recursive_glob(os.path.join(datadir, 'RadialMetric', pattern), 'RDL*.ruv')
+    rmfoldername = get_radialmetric_foldername(datadir)
+    fns = recursive_glob(os.path.join(datadir, rmfoldername, pattern), 'RDL*.ruv')
     fns = [os.path.basename(fn) for fn in fns]
     # print fns
     rsfns = recursive_glob(os.path.join(datadir, 'RadialShorts_qcd', pattern), 'RDL*.ruv')
@@ -151,7 +154,7 @@ def catchup(datadir, pattern):
     print newfns
 
     for fn in newfns:
-        fullfn = os.path.join(datadir, 'RadialMetric', pattern, fn)
+        fullfn = os.path.join(datadir, rmfoldername, pattern, fn)
         auto(datadir, pattern, fullfn)
 
 
@@ -167,10 +170,14 @@ def main():
         runarg = 'manual'
     elif arguments['auto']:
         runarg = 'auto'
+    elif arguments['catchup']:
+        runarg = 'catchup'
     else:
         runarg = ''
 
-    indatadir = os.path.join(datadir, 'RadialMetric', pattern)
+    rmfoldername = get_radialmetric_foldername(datadir)
+    # indatadir = os.path.join(datadir, 'RadialMetric', pattern)
+    indatadir = os.path.join(datadir, rmfoldername, pattern)
     if not os.path.isdir(indatadir):
         print "Error: qccodar %s --datadir %s --pattern %s" % (runarg, datadir, pattern)
         print "Directory does not exist: %s " % indatadir
