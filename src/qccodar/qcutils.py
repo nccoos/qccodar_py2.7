@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Last modified: Time-stamp: <2017-08-24 19:38:16 codar>
+# Last modified: Time-stamp: <2019-12-03 10:25:10 codar>
 
 """Quality control (QC) functions for CODAR SeaSonde Radialmetric data
 
@@ -303,7 +303,7 @@ def recursive_glob(treeroot, pattern):
        The results of search.
 
     >>> files = os.path.join(os.path.curdir, 'test', 'files')
-    >>> recursive_glob(files, 'RDLx*.*')
+    >>> fns = recursive_glob(files, 'RDLx*.*')
     
     """
     # fnmatch gives you exactly the same patterns as glob, so this is
@@ -313,7 +313,10 @@ def recursive_glob(treeroot, pattern):
     results = [] 
     for base, dirs, files in os.walk(treeroot): 
         goodfiles = fnmatch.filter(files, pattern) 
-        results.extend(os.path.join(base, f) for f in goodfiles) 
+        results.extend(os.path.join(base, f) for f in goodfiles)
+
+    # sort the unsorted results
+    results.sort()
     return results 
 
 def filt_datetime(input_string, pattern=None):

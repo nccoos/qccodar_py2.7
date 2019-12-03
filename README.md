@@ -67,10 +67,18 @@ and qccodar to provide QC'd Radial data based on RadialMetric output.
 While logged on as user `codar`, open a terminal to download (curl) and run the installer script. 
 
 ```bash
+
    $ cd ~/Downloads
    $ curl https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -o "miniconda.sh"
    $ bash ~/Downloads/miniconda.sh -b -p $HOME/miniconda
    $ export PATH="$HOME/miniconda/bin:$PATH"
+```
+
+As, user `codar`, edit `~/.bash_profile`, add the `export
+PATH="$HOME/miniconda/bin:$PATH"`, and then source your profile.
+
+```bash
+   $ source ~/.bash_profile
 ```
 
 Refer to the [Conda Installation
@@ -82,14 +90,14 @@ dependencies to run isolated from the installed Python avoiding
 potential module version conflicts.  While this is not a requirement
 to get qccodar running, it is recommended.
 
-As user `codar`, open a new terminal window to source the .bash_profile.
-
 ```bash
+
    $ conda create --name qccodar python
 ```
 
 Activate the environment:
 ```bash
+
    $ source activate qccodar
    (qccodar) $ which python
    /Users/codar/miniconda/envs/qccodar/bin/python

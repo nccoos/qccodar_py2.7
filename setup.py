@@ -11,6 +11,7 @@ install_requires = [
 
 qcviz_requires=[
     'matplotlib',
+    'ipython'
     ]
 
 tests_requires= [
@@ -47,5 +48,6 @@ setup(name='qccodar',
       entry_points="""
         [console_scripts]
         qccodar = qccodar.app:main
-      """
+      """,
+      scripts=['qcviz.py']
       )

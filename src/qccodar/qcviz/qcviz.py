@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env pythonw
 #
-# Last modified: Time-stamp: <2015-10-13 09:07:10 haines>
+# Last modified: Time-stamp: <2017-10-13 16:29:02 codar>
 """ Vizualization tool for QC process and settings
 
 For a given bearing:
@@ -29,9 +29,9 @@ In[]: %run qcutil.py
 In[]: plt.show()
 
 """
-from qcutils import *
-from codarutils import *
-from sliders import IndexedSlider
+from qccodar.qcutils import *
+from qccodar.codarutils import *
+from qccodar.qcviz.sliders import IndexedSlider
 
 import sys
 
@@ -44,7 +44,7 @@ import matplotlib.pylab as pylab
 params = {'thresholds' : [5.0, 50.0, 5.0, 5.0],
           'numfiles' : 3,
           'numdegrees' :  3,
-          'numpoints' :  1,
+          'numpoints' :  2,
           'weight_parameter' : 'MP',
           'bearing' : 0,
 }
@@ -396,3 +396,4 @@ elif len(sys.argv) < 2:
 
 d, types_str, rsd, rstypes_str = get_data(datadir, fn, patterntype)
 init_plot(d, types_str, rsd, rstypes_str)
+plt.show()
