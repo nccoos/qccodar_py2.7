@@ -1,7 +1,9 @@
-# Depreciating version
+# Depreciated version
 This code runs under Python 2.7 and with SSR7 RadialMetric data. 
 Please see updated official respository for [qccodar](https://github.com/teresaupdyke/qccodar) 
-code now maintained by Teresa Updyke (@teresaupdyke). 
+with newer versions of SeaSonde software (SSR8) under Python 3, using Mike Smith's
+[HFRadarPy](https://github.com/rucool/HFRadarPy) toolbox for manipulating radial data files.  
+While we are contributing to this updated code it is now maintained by Teresa Updyke (@teresaupdyke). 
 
 # qccodar
 
