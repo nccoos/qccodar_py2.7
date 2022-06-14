@@ -1,3 +1,8 @@
+# Depreciating version
+This code runs under Python 2.7 and with SSR7 RadialMetric data. 
+Please see updated official respository for [qccodar](https://github.com/teresaupdyke/qccodar) 
+code now maintained by Teresa Updyke (@teresaupdyke). 
+
 # qccodar
 
 This python code applies several quality control (QC) functions based
